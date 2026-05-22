@@ -189,6 +189,21 @@ input,select{font-family:'Inter',sans-serif}
 /* ── CHART BOXES ── */
 .chart-box{position:relative;height:240px;margin-top:8px}
 
+/* ── BUDGET TABLE (Excel style) ── */
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}
+.budget-table{width:100%;border-collapse:collapse}
+.budget-table th{font-size:9px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:1.2px;padding:7px 8px;border-bottom:2px solid var(--bd);text-align:right;white-space:nowrap}
+.budget-table th:first-child{text-align:left}
+.budget-table td{padding:7px 8px;border-bottom:1px solid rgba(30,46,78,.5);font-weight:500;text-align:right;font-size:12px;white-space:nowrap;color:var(--tx)}
+.budget-table td.td-left{text-align:left}
+.budget-table tr.total-row td{background:var(--sf2);font-weight:800;font-size:12px;border-top:1px solid var(--bd2)}
+.budget-table .pos{color:var(--inc)}
+.budget-table .neg{color:var(--exp)}
+.budget-table .neu{color:var(--tx2)}
+.scroll-table{max-height:300px;overflow-y:auto}
+@media(max-width:900px){.g4{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.g4{grid-template-columns:1fr 1fr}}
+
 /* ── SETTINGS ── */
 .sett-block{margin-bottom:20px}
 .sett-block-title{font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--bd)}
@@ -390,62 +405,99 @@ hr{border:none;border-top:1px solid var(--bd);margin:12px 0}
       </div>
     </div>
 
-    <!-- Balance card -->
-    <div class="bal-card">
-      <div class="bal-lbl">Net Balance</div>
-      <div class="bal-amt" id="dash-bal">PKR 0</div>
-      <div class="bal-change nt" id="dash-change">No transactions yet</div>
-      <div class="bal-stats">
-        <div class="bst"><div class="bst-lbl">Total Income</div><div class="bst-val i" id="dash-inc">PKR 0</div></div>
-        <div class="bst"><div class="bst-lbl">Total Expenses</div><div class="bst-val e" id="dash-exp">PKR 0</div></div>
+    <!-- ── 4 KEY STATS ── -->
+    <div class="g4">
+      <div class="stat-card">
+        <div class="sc-top"><div class="sc-label">Left to Spend</div><div class="sc-ico">💳</div></div>
+        <div class="sc-val p" id="dash-left-spend">PKR 0</div>
+        <div class="sc-sub" id="dash-left-spend-sub">of budget remaining</div>
+        <div class="sc-bar"><div class="sc-bar-fill" id="dash-left-spend-bar" style="width:0%;background:var(--cyan)"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-top"><div class="sc-label">Total Income</div><div class="sc-ico">💰</div></div>
+        <div class="sc-val i" id="dash-total-inc">PKR 0</div>
+        <div class="sc-sub" id="dash-inc-sub">this month</div>
+        <div class="sc-bar"><div class="sc-bar-fill" id="dash-inc-bar" style="width:0%;background:var(--inc)"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-top"><div class="sc-label">Total Expenses</div><div class="sc-ico">💸</div></div>
+        <div class="sc-val e" id="dash-total-exp">PKR 0</div>
+        <div class="sc-sub" id="dash-exp-sub">this month</div>
+        <div class="sc-bar"><div class="sc-bar-fill" id="dash-exp-bar" style="width:0%;background:var(--exp)"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-top"><div class="sc-label">Net Balance</div><div class="sc-ico">🎯</div></div>
+        <div class="sc-val" id="dash-net-bal">PKR 0</div>
+        <div class="sc-sub" id="dash-bal-sub">income − expenses</div>
+        <div class="sc-bar"><div class="sc-bar-fill" id="dash-bal-bar" style="width:0%;background:var(--cyan)"></div></div>
       </div>
     </div>
 
-    <!-- 3 stat cards -->
-    <div class="g3">
-      <div class="stat-card">
-        <div class="sc-top"><div class="sc-label">This Month Income</div><div class="sc-ico">💰</div></div>
-        <div class="sc-val i" id="sc-minc">PKR 0</div>
-        <div class="sc-sub" id="sc-minc-sub">0 transactions</div>
-        <div class="sc-bar"><div class="sc-bar-fill" id="sc-minc-bar" style="width:0%;background:var(--inc)"></div></div>
+    <!-- ── MAIN GRID: Tables + Charts ── -->
+    <div class="g21" style="align-items:start">
+
+      <!-- LEFT: Income + Spending tables -->
+      <div>
+        <!-- Income table -->
+        <div class="card mb16">
+          <div class="ctitle">Income <span style="color:var(--tx2);font-weight:500" id="inc-month-lbl"></span></div>
+          <table class="budget-table">
+            <thead><tr><th>INCOME NAME</th><th>EXPECTED</th><th>ACTUAL</th><th>DIFF</th></tr></thead>
+            <tbody id="income-table-body"></tbody>
+          </table>
+        </div>
+
+        <!-- Spending Overview table -->
+        <div class="card mb16">
+          <div class="ctitle">Spending Overview <span style="color:var(--tx2);font-weight:500" id="spend-month-lbl"></span></div>
+          <table class="budget-table">
+            <thead><tr><th>CATEGORY</th><th>BUDGET</th><th>ACTUAL</th><th>DIFF</th></tr></thead>
+            <tbody id="spending-table-body"></tbody>
+          </table>
+        </div>
       </div>
-      <div class="stat-card">
-        <div class="sc-top"><div class="sc-label">This Month Expenses</div><div class="sc-ico">💸</div></div>
-        <div class="sc-val e" id="sc-mexp">PKR 0</div>
-        <div class="sc-sub" id="sc-mexp-sub">0 transactions</div>
-        <div class="sc-bar"><div class="sc-bar-fill" id="sc-mexp-bar" style="width:0%;background:var(--exp)"></div></div>
-      </div>
-      <div class="stat-card">
-        <div class="sc-top"><div class="sc-label">Savings Rate</div><div class="sc-ico">🎯</div></div>
-        <div class="sc-val p" id="sc-sav">0%</div>
-        <div class="sc-sub" id="sc-sav-sub">Of income saved</div>
-        <div class="sc-bar"><div class="sc-bar-fill" id="sc-sav-bar" style="width:0%;background:var(--cyan)"></div></div>
+
+      <!-- RIGHT: Charts -->
+      <div>
+        <div class="card mb16">
+          <div class="ctitle"><span id="dash-chart-title">Weekly Overview</span><div class="pf"><button class="pfb on" id="dc-wk" onclick="setDashPeriod('week',this)">Week</button><button class="pfb" id="dc-mo" onclick="setDashPeriod('month',this)">Month</button></div></div>
+          <div class="chart-box" style="height:220px"><canvas id="c-dash"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="ctitle">Spending Breakdown</div>
+          <div class="chart-box" style="height:200px"><canvas id="c-dash-donut"></canvas></div>
+        </div>
       </div>
     </div>
 
-    <div class="g21">
-      <!-- Chart -->
+    <!-- ── BOTTOM GRID: Tracker + Daily ── -->
+    <div class="g2" style="align-items:start;margin-bottom:14px">
+      <!-- Transactions Tracker -->
       <div class="card">
-        <div class="ctitle"><span id="dash-chart-title">Weekly Overview</span><div class="pf"><button class="pfb on" id="dc-wk" onclick="setDashPeriod('week',this)">Week</button><button class="pfb" id="dc-mo" onclick="setDashPeriod('month',this)">Month</button></div></div>
-        <div class="chart-box" style="height:280px"><canvas id="c-dash"></canvas></div>
+        <div class="ctitle">Transactions Tracker <span style="color:var(--tx2);font-weight:500" id="tx-track-lbl"></span></div>
+        <div class="scroll-table">
+          <table class="budget-table">
+            <thead><tr><th class="td-left">DATE</th><th>AMOUNT</th><th class="td-left">CATEGORY</th><th class="td-left">DESCRIPTION</th><th>BALANCE</th></tr></thead>
+            <tbody id="tx-tracker-body"></tbody>
+          </table>
+        </div>
       </div>
-      <!-- Recent -->
+      <!-- Daily Spendings -->
       <div class="card">
-        <div class="ctitle">Recent Transactions <span class="ctitle-link" onclick="go('transactions')">See all →</span></div>
-        <div id="recent-list"></div>
+        <div class="ctitle">Daily Spendings <span style="color:var(--tx2);font-weight:500" id="daily-month-lbl"></span></div>
+        <div class="scroll-table">
+          <table class="budget-table">
+            <thead><tr><th class="td-left">DATE</th><th>SPENT</th><th>INCOME</th><th>BALANCE</th></tr></thead>
+            <tbody id="daily-spend-body"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
-    <!-- Weekly breakdown chart -->
+    <!-- ── WEEKLY BREAKDOWN CHART ── -->
     <div class="card mb16">
-      <div class="ctitle">Weekly Breakdown <span style="color:var(--tx2);font-weight:500" id="wk-month-lbl"></span><span style="font-size:10px;color:var(--tx2);font-weight:500">Fills throughout the month</span></div>
+      <div class="ctitle">Weekly Breakdown <span style="color:var(--tx2);font-weight:500" id="wk-month-lbl"></span><span style="font-size:10px;color:var(--tx2);font-weight:500;margin-left:6px">Fills throughout the month</span></div>
       <div class="chart-box" style="height:220px"><canvas id="c-wk-month"></canvas></div>
-    </div>
-
-    <!-- Top categories -->
-    <div class="card">
-      <div class="ctitle">Top Spending Categories <span style="color:var(--tx2)" id="cat-month-lbl"></span></div>
-      <div id="top-cats"></div>
     </div>
 
   </div>
@@ -863,86 +915,138 @@ function ringHtml(pct,color,emoji){
 // RENDER DASHBOARD
 // ═══════════════════════════════════════
 function renderDashboard(){
-  const {inc,exp,bal}=getTotals();
   const mo=getMonth(viewDate);
   const lim=sett.limit||1000;
+  const pfx=monthOf(viewDate);
+  const mo_lbl='· '+monthLabel(viewDate);
 
-  // Balance
-  document.getElementById('dash-bal').textContent=(bal<0?'-':'')+pkr(bal);
-  document.getElementById('dash-inc').textContent=pkr(inc);
-  document.getElementById('dash-exp').textContent=pkr(exp);
+  // ── 4 Stat Cards ──
+  const totalBudExp=CATS.expense.reduce((s,c)=>s+(budgets[c.n]||0),0);
+  const leftToSpend=totalBudExp>0?totalBudExp-mo.exp:mo.bal;
+  document.getElementById('dash-left-spend').textContent=(leftToSpend<0?'-':'')+pkr(leftToSpend);
+  document.getElementById('dash-left-spend').className='sc-val '+(leftToSpend>=0?'p':'e');
+  document.getElementById('dash-left-spend-sub').textContent=totalBudExp>0?`of ${pkr(totalBudExp)} budget`:'net remaining';
+  document.getElementById('dash-left-spend-bar').style.width=totalBudExp>0?Math.max(0,Math.min(100,((totalBudExp-mo.exp)/totalBudExp)*100))+'%':'50%';
+  document.getElementById('dash-total-inc').textContent=pkr(mo.inc);
+  document.getElementById('dash-inc-sub').textContent=`${mo.incT} transactions`;
+  document.getElementById('dash-inc-bar').style.width=mo.inc>0?'100%':'0%';
+  document.getElementById('dash-total-exp').textContent=pkr(mo.exp);
+  document.getElementById('dash-exp-sub').textContent=`${mo.expT} transactions`;
+  document.getElementById('dash-exp-bar').style.width=mo.inc>0?Math.min(100,(mo.exp/mo.inc)*100)+'%':'0%';
+  document.getElementById('dash-net-bal').textContent=(mo.bal<0?'-':'')+pkr(mo.bal);
+  document.getElementById('dash-net-bal').className='sc-val '+(mo.bal>=0?'i':'e');
+  document.getElementById('dash-bal-sub').textContent=mo.bal>=0?'You\'re ahead! 🎉':'Spending more than earning';
+  document.getElementById('dash-bal-bar').style.width=mo.inc>0?Math.max(0,Math.min(100,(mo.bal/mo.inc)*100))+'%':'0%';
 
-  const ch=document.getElementById('dash-change');
-  if(inc===0&&exp===0){ ch.textContent='No transactions yet'; ch.className='bal-change nt'; }
-  else if(bal>=0){ ch.textContent=`↑ You are PKR ${fmt(bal)} ahead`; ch.className='bal-change up'; }
-  else { ch.textContent=`↓ PKR ${fmt(Math.abs(bal))} in deficit`; ch.className='bal-change dn'; }
-
-  // Stat cards
-  document.getElementById('sc-minc').textContent=pkr(mo.inc);
-  document.getElementById('sc-mexp').textContent=pkr(mo.exp);
-  document.getElementById('sc-minc-sub').textContent=`${mo.incT} transactions`;
-  document.getElementById('sc-mexp-sub').textContent=`${mo.expT} transactions`;
-  const savRate=mo.inc>0?Math.round(((mo.inc-mo.exp)/mo.inc)*100):0;
-  document.getElementById('sc-sav').textContent=`${Math.max(0,savRate)}%`;
-  document.getElementById('sc-sav-sub').textContent=savRate<=0?'Spending more than earning':'Of this month\'s income saved';
-  document.getElementById('sc-minc-bar').style.width=Math.min(100,(mo.inc/(inc||1))*100)+'%';
-  document.getElementById('sc-mexp-bar').style.width=Math.min(100,(mo.exp/(exp||1))*100)+'%';
-  document.getElementById('sc-sav-bar').style.width=Math.max(0,savRate)+'%';
-
-  // Funny alert
+  // ── Funny alert ──
   const te=getTodayExp();
   const fb=document.getElementById('funny-box');
   if(te>=lim){
     const f=FUNNY[~~(Math.random()*FUNNY.length)];
     document.getElementById('fn-emo').textContent=f.e;
     document.getElementById('fn-msg').textContent=f.m;
-    document.getElementById('fn-sub').textContent=`Today's total spending: ${pkr(te)} — Limit: ${pkr(lim)}`;
+    document.getElementById('fn-sub').textContent=`Today's spending: ${pkr(te)} — Limit: ${pkr(lim)}`;
     fb.style.display='flex';
   } else fb.style.display='none';
 
-  // Salary quick
+  // ── Salary quick ──
   const sq=document.getElementById('sal-quick-wrap');
-  if(sett.salary>0){
-    sq.style.display='block';
-    document.getElementById('sq-sub').textContent=`${pkr(sett.salary)} ready to add for ${monthLabel(viewDate)}`;
-  } else sq.style.display='none';
+  if(sett.salary>0){ sq.style.display='block'; document.getElementById('sq-sub').textContent=`${pkr(sett.salary)} ready to add for ${monthLabel(viewDate)}`; }
+  else sq.style.display='none';
 
-  document.getElementById('cat-month-lbl').textContent=`· ${monthLabel(viewDate)}`;
-
-  // Recent
-  const recent=[...txs].sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).slice(0,6);
-  const rl=document.getElementById('recent-list');
-  if(!recent.length){ rl.innerHTML=`<div class="empty"><div class="empty-e">💳</div><div class="empty-t">No transactions yet</div><div class="empty-s">Click + Add to get started</div></div>`; }
-  else rl.innerHTML=recent.map(t=>txRowHtml(t,false)).join('');
-
-  // Top categories
-  const pfx=monthOf(viewDate);
-  const map={};
-  txs.filter(t=>t.type==='expense'&&t.date.startsWith(pfx)).forEach(t=>{map[t.cat]=(map[t.cat]||0)+t.amt;});
-  const sorted=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,6);
-  const maxVal=sorted[0]?sorted[0][1]:1;
-  const tc=document.getElementById('top-cats');
-  if(!sorted.length){ tc.innerHTML=`<div style="color:var(--tx2);font-size:12px;padding:10px 0">No expenses this month yet.</div>`; }
-  else tc.innerHTML=sorted.map(([cat,amt])=>{
-    const bud=budgets[cat]||0;
-    const pct=Math.min((amt/maxVal)*100,100);
-    const budPct=bud>0?Math.min((amt/bud)*100,100):pct;
-    const color=bud>0&&amt>bud?'var(--exp)':'var(--cyan)';
-    return `<div class="sp-row">
-      <div class="sp-ico">${emojiOf(cat)}</div>
-      <div class="sp-info">
-        <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-          <span class="sp-name">${cat}</span>
-          <span class="sp-right">${pkr(amt)}${bud>0?` <span class="sp-pct">/ ${pkr(bud)}</span>`:''}</span>
-        </div>
-        <div class="sp-bar"><div class="sp-fill" style="width:${budPct}%;background:${color}"></div></div>
-      </div>
-    </div>`;
+  // ── Income table ──
+  document.getElementById('inc-month-lbl').textContent=mo_lbl;
+  let incTotal=0,incExpTotal=0;
+  const incRows=CATS.income.map(c=>{
+    const actual=getCatSpend(viewDate,c.n,'income');
+    const expected=c.n==='Salary'?(sett.salary||0):(budgets[c.n]||0);
+    if(actual===0&&expected===0) return '';
+    const diff=actual-expected;
+    incTotal+=actual; incExpTotal+=expected;
+    return `<tr>
+      <td class="td-left">${c.e} ${c.n}</td>
+      <td>${expected>0?pkr(expected):'—'}</td>
+      <td class="${actual>0?'pos':'neu'}">${actual>0?pkr(actual):'—'}</td>
+      <td class="${diff>0?'pos':diff<0?'neg':'neu'}">${diff!==0?(diff>0?'+':'')+pkr(Math.abs(diff)):'—'}</td>
+    </tr>`;
   }).join('');
+  document.getElementById('income-table-body').innerHTML=(incRows||`<tr><td class="td-left" colspan="4" style="color:var(--tx2);padding:16px 0">No income this month yet</td></tr>`)
+    +`<tr class="total-row"><td class="td-left"><b>TOTAL</b></td><td>${pkr(incExpTotal)}</td><td class="pos">${pkr(incTotal)}</td><td class="${incTotal-incExpTotal>=0?'pos':'neg'}">${incTotal>=incExpTotal?'+':'-'}${pkr(Math.abs(incTotal-incExpTotal))}</td></tr>`;
 
-  // Dashboard chart
+  // ── Spending Overview table ──
+  document.getElementById('spend-month-lbl').textContent=mo_lbl;
+  let expTbl=0,expBudTbl=0;
+  const spendRows=CATS.expense.map(c=>{
+    const actual=getCatSpend(viewDate,c.n,'expense');
+    const bud=budgets[c.n]||0;
+    if(actual===0&&bud===0) return '';
+    const diff=bud>0?bud-actual:0;
+    expTbl+=actual; if(bud>0) expBudTbl+=bud;
+    return `<tr>
+      <td class="td-left">${c.e} ${c.n}</td>
+      <td>${bud>0?pkr(bud):'—'}</td>
+      <td class="${actual>0?'neg':'neu'}">${actual>0?pkr(actual):'—'}</td>
+      <td class="${bud>0?(diff>=0?'pos':'neg'):'neu'}">${bud>0?(diff>=0?'+':'-')+pkr(Math.abs(diff)):'—'}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('spending-table-body').innerHTML=(spendRows||`<tr><td class="td-left" colspan="4" style="color:var(--tx2);padding:16px 0">No expenses this month yet</td></tr>`)
+    +`<tr class="total-row"><td class="td-left"><b>TOTAL</b></td><td>${expBudTbl>0?pkr(expBudTbl):'—'}</td><td class="neg">${pkr(expTbl)}</td><td class="${expBudTbl>0?(expBudTbl-expTbl>=0?'pos':'neg'):'neu'}">${expBudTbl>0?(expBudTbl-expTbl>=0?'+':'-')+pkr(Math.abs(expBudTbl-expTbl)):'—'}</td></tr>`;
+
+  // ── Transactions Tracker ──
+  document.getElementById('tx-track-lbl').textContent=mo_lbl;
+  const monthTxs=[...txs].filter(t=>t.date.startsWith(pfx)).sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id));
+  let runBal=0;
+  document.getElementById('tx-tracker-body').innerHTML=monthTxs.length
+    ?monthTxs.map(t=>{
+        runBal+=t.type==='income'?t.amt:-t.amt;
+        return `<tr>
+          <td class="td-left" style="color:var(--tx2)">${new Date(t.date+'T00:00:00').toLocaleDateString('en-PK',{month:'short',day:'numeric'})}</td>
+          <td class="${t.type==='income'?'pos':'neg'}">${t.type==='income'?'+':'-'}${pkr(t.amt)}</td>
+          <td class="td-left">${emojiOf(t.cat)} ${t.cat}</td>
+          <td class="td-left" style="color:var(--tx2);font-size:11px;max-width:110px;overflow:hidden;text-overflow:ellipsis">${t.desc||'—'}</td>
+          <td class="${runBal>=0?'pos':'neg'}">${(runBal<0?'-':'')+pkr(runBal)}</td>
+        </tr>`;
+      }).join('')
+    :`<tr><td colspan="5" style="text-align:center;color:var(--tx2);padding:20px 0">No transactions this month</td></tr>`;
+
+  // ── Daily Spendings ──
+  document.getElementById('daily-month-lbl').textContent=mo_lbl;
+  const y2=viewDate.getFullYear(),m2=viewDate.getMonth();
+  const dim2=new Date(y2,m2+1,0).getDate();
+  const tod=today(); let dailyBal=0,dailyHtml='';
+  for(let d=1;d<=dim2;d++){
+    const ds=dayStr(y2,m2+1,d); if(ds>tod) break;
+    const dExp=txs.filter(t=>t.type==='expense'&&t.date===ds).reduce((s,t)=>s+t.amt,0);
+    const dInc=txs.filter(t=>t.type==='income'&&t.date===ds).reduce((s,t)=>s+t.amt,0);
+    if(dExp===0&&dInc===0) continue;
+    dailyBal+=dInc-dExp;
+    dailyHtml+=`<tr>
+      <td class="td-left" style="color:var(--tx2)">${new Date(ds+'T00:00:00').toLocaleDateString('en-PK',{month:'short',day:'numeric'})}</td>
+      <td class="${dExp>0?'neg':'neu'}">${dExp>0?pkr(dExp):'—'}</td>
+      <td class="${dInc>0?'pos':'neu'}">${dInc>0?pkr(dInc):'—'}</td>
+      <td class="${dailyBal>=0?'pos':'neg'}">${(dailyBal<0?'-':'')+pkr(dailyBal)}</td>
+    </tr>`;
+  }
+  document.getElementById('daily-spend-body').innerHTML=dailyHtml||`<tr><td colspan="4" style="text-align:center;color:var(--tx2);padding:20px 0">No data yet</td></tr>`;
+
   renderDashChart();
+  renderDashDonut();
   renderWeeklyMonthChart();
+}
+
+function renderDashDonut(){
+  const ctx=document.getElementById('c-dash-donut');
+  if(!ctx) return;
+  if(charts.dashDonut) charts.dashDonut.destroy();
+  const pfx=monthOf(viewDate),catMap={};
+  txs.filter(t=>t.type==='expense'&&t.date.startsWith(pfx)).forEach(t=>{catMap[t.cat]=(catMap[t.cat]||0)+t.amt;});
+  const lbls=Object.keys(catMap),vals=Object.values(catMap);
+  if(!lbls.length){
+    const c=ctx.getContext('2d');c.clearRect(0,0,ctx.width,ctx.height);
+    c.fillStyle='#7A9CC0';c.font='13px Inter';c.textAlign='center';c.fillText('No expenses this month',ctx.offsetWidth/2||120,ctx.offsetHeight/2||100);
+    return;
+  }
+  charts.dashDonut=new Chart(ctx,{type:'doughnut',data:{labels:lbls,datasets:[{data:vals,backgroundColor:CHART_COLORS.slice(0,lbls.length),borderWidth:3,borderColor:'#111D35',hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#7A9CC0',font:{family:'Inter',size:10},padding:8,boxWidth:10}}}}});
 }
 
 function renderDashChart(){
