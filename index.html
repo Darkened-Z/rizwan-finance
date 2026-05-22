@@ -9,12 +9,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0B1426;--sf:#111D35;--sf2:#162040;--sf3:#1E2D4E;
-  --bd:#1E2E4E;--bd2:#253558;
+  --bg:#040912;--sf:#080F1E;--sf2:#0C1428;--sf3:#101B34;
+  --bd:#141F36;--bd2:#1A2840;
   --cyan:#00C4D4;--cyan2:#009EAD;
   --inc:#00D68F;--exp:#FF4B6E;--amb:#FFB300;--pur:#8B5CF6;
-  --tx:#E8F0FE;--tx2:#7A9CC0;--tx3:#3A5A80;
-  --sw:230px;--nh:60px;--r:14px;
+  --tx:#D8E8FF;--tx2:#5A7EA0;--tx3:#2A4060;
+  --sw:230px;--nh:60px;--r:12px;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{font-size:14px}
@@ -47,7 +47,7 @@ input,select{font-family:'Inter',sans-serif}
 .sb-sub{font-size:11px;color:var(--tx2);margin-top:1px}
 
 /* ── AVATAR ── */
-.avatar{width:40px;height:40px;border-radius:50%;overflow:hidden;border:2px solid var(--cyan);flex-shrink:0;background:linear-gradient(135deg,var(--cyan),var(--pur));display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#0B1426;position:relative}
+.avatar{width:40px;height:40px;border-radius:50%;overflow:hidden;border:1px solid var(--bd2);flex-shrink:0;background:var(--sf2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:var(--tx2);position:relative}
 .avatar img{width:100%;height:100%;object-fit:cover;object-position:center top;position:absolute;inset:0}
 .avatar-sm{width:32px;height:32px;font-size:12px;border-width:1.5px}
 .avatar-lg{width:50px;height:50px;font-size:18px;border-width:2.5px}
@@ -90,9 +90,7 @@ input,select{font-family:'Inter',sans-serif}
 .ctitle-link:hover{text-decoration:underline}
 
 /* ── BALANCE CARD ── */
-.bal-card{background:linear-gradient(135deg,#0D2040 0%,#102845 50%,#0A1E3A 100%);border:1px solid #1C3560;border-radius:var(--r);padding:24px;margin-bottom:14px;position:relative;overflow:hidden}
-.bal-card::before{content:'';position:absolute;width:250px;height:250px;border-radius:50%;background:rgba(0,196,212,.07);top:-80px;right:-80px;pointer-events:none}
-.bal-card::after{content:'';position:absolute;width:140px;height:140px;border-radius:50%;background:rgba(0,196,212,.04);bottom:-40px;left:120px;pointer-events:none}
+.bal-card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:24px;margin-bottom:14px;position:relative;overflow:hidden}
 .bal-lbl{font-size:10px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:2px}
 .bal-amt{font-size:38px;font-weight:900;color:var(--tx);margin:8px 0 4px;letter-spacing:-1.5px;position:relative;z-index:1}
 .bal-change{font-size:12px;font-weight:600;margin-bottom:18px;position:relative;z-index:1}
@@ -221,8 +219,8 @@ input,select{font-family:'Inter',sans-serif}
 .danger-btn:hover{background:rgba(255,75,110,.15)}
 
 /* ── ADD MODAL ── */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);padding:20px}
-.modal{background:var(--sf);border:1px solid var(--bd2);border-radius:18px;padding:24px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:20px}
+.modal{background:var(--sf);border:1px solid var(--bd);border-radius:14px;padding:24px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto}
 .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
 .modal-title{font-size:17px;font-weight:700}
 .modal-x{width:32px;height:32px;background:var(--sf2);border-radius:50%;color:var(--tx2);font-size:16px;display:flex;align-items:center;justify-content:center;transition:background .15s}
@@ -243,7 +241,7 @@ input,select{font-family:'Inter',sans-serif}
 .modal-btn:hover{background:var(--cyan2)}
 
 /* ── FUNNY BANNER ── */
-.funny{background:linear-gradient(135deg,rgba(255,179,0,.1),rgba(255,75,110,.07));border:1px solid rgba(255,179,0,.28);border-radius:var(--r);padding:14px 16px;margin-bottom:14px;display:flex;align-items:flex-start;gap:12px;animation:shake .5s ease}
+.funny{background:rgba(255,179,0,.06);border:1px solid rgba(255,179,0,.18);border-radius:var(--r);padding:14px 16px;margin-bottom:14px;display:flex;align-items:flex-start;gap:12px;animation:shake .5s ease}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
 .fn-emo{font-size:30px;flex-shrink:0;line-height:1}
 .fn-msg{font-size:13px;font-weight:600;color:#FFD54F;line-height:1.55}
@@ -258,7 +256,7 @@ input,select{font-family:'Inter',sans-serif}
 .sq-go{padding:7px 14px;background:var(--inc);color:#0B1426;border-radius:8px;font-size:12px;font-weight:700}
 
 /* ── TOAST ── */
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--sf2);border:1px solid var(--bd2);color:var(--tx);padding:10px 20px;border-radius:30px;font-size:13px;font-weight:600;opacity:0;transition:all .28s;z-index:500;white-space:nowrap;pointer-events:none;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--sf2);border:1px solid var(--bd);color:var(--tx);padding:10px 20px;border-radius:30px;font-size:13px;font-weight:600;opacity:0;transition:all .28s;z-index:500;white-space:nowrap;pointer-events:none}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* ── SYNC BADGE ── */
@@ -279,7 +277,7 @@ input,select{font-family:'Inter',sans-serif}
 .bni.on{color:var(--cyan)}
 .bni-ico{font-size:19px}
 .bni.add-n{color:var(--tx2)}
-.bni-circle{width:46px;height:46px;background:var(--cyan);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#0B1426;font-size:22px;margin-top:-14px;box-shadow:0 4px 16px rgba(0,196,212,.3);transition:transform .2s}
+.bni-circle{width:46px;height:46px;background:var(--cyan);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#040912;font-size:22px;margin-top:-14px;transition:transform .2s}
 .bni.add-n.on .bni-circle{transform:rotate(45deg)}
 
 /* ── EMPTY ── */
