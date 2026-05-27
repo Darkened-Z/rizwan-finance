@@ -216,9 +216,52 @@ input,select{font-family:'Inter',sans-serif}
   .g2{grid-template-columns:1fr}
 }
 @media(max-width:480px){ .g4{grid-template-columns:1fr 1fr} }
+
+/* LOGIN SCREEN */
+.login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-card{background:var(--sf);border:1px solid var(--bd);border-radius:20px;padding:38px 32px;width:100%;max-width:380px;display:flex;flex-direction:column;align-items:center;box-shadow:0 24px 60px rgba(0,0,0,.55)}
+.login-logo{width:90px;height:90px;border-radius:50%;overflow:hidden;border:3px solid var(--cyan);background:var(--sf2);display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:900;color:var(--cyan);margin-bottom:18px;position:relative;flex-shrink:0;box-shadow:0 0 0 6px rgba(0,196,212,.08)}
+.login-logo img{width:100%;height:100%;object-fit:cover;object-position:center top;position:absolute;inset:0;border-radius:50%}
+.login-app-name{font-size:22px;font-weight:900;color:var(--tx);margin-bottom:5px;letter-spacing:-.3px;text-align:center}
+.login-sub{font-size:12px;color:var(--tx2);margin-bottom:28px;text-align:center}
+.login-field{width:100%;margin-bottom:12px}
+.login-field input{width:100%;padding:13px 14px;background:var(--sf2);border:1.5px solid var(--bd);border-radius:10px;color:var(--tx);font-size:14px;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s}
+.login-field input:focus{border-color:var(--cyan)}
+.login-field input::placeholder{color:var(--tx2)}
+.login-btn{width:100%;padding:14px;background:var(--cyan);color:#0B1426;border-radius:10px;font-size:15px;font-weight:800;border:none;cursor:pointer;transition:background .2s;margin-top:4px;font-family:'Inter',sans-serif;letter-spacing:-.2px}
+.login-btn:hover{background:var(--cyan2)}
+.login-btn:active{transform:scale(.98)}
+.login-err{font-size:12px;color:var(--exp);margin-top:10px;min-height:16px;text-align:center;font-weight:600}
+.login-hint{font-size:11px;color:var(--tx3);margin-top:14px;text-align:center;line-height:1.5}
 </style>
 </head>
 <body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" class="login-screen" style="display:none">
+  <div class="login-card">
+    <div class="login-logo">
+      <img id="login-pfp-img" src="" alt="" style="display:none">
+      <span id="login-pfp-init">R</span>
+    </div>
+    <div class="login-app-name" id="login-app-name">Rizwan's Finance</div>
+    <div class="login-sub">Sign in to your account</div>
+    <div class="login-field">
+      <input type="text" id="l-user" placeholder="Username" autocomplete="username"
+             oninput="clearLoginErr()"
+             onkeydown="if(event.key==='Enter')document.getElementById('l-pass').focus()">
+    </div>
+    <div class="login-field">
+      <input type="password" id="l-pass" placeholder="Password" autocomplete="current-password"
+             oninput="clearLoginErr()"
+             onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign In →</button>
+    <div class="login-err" id="login-err"></div>
+    <div class="login-hint" id="login-hint"></div>
+  </div>
+</div>
+
 <div class="layout">
 
 <!-- SIDEBAR -->
@@ -240,7 +283,10 @@ input,select{font-family:'Inter',sans-serif}
   <nav class="nav-section" id="sidebar-nav"></nav>
   <div class="sb-foot">
     <div class="sb-user" id="sb-name-lbl">Rizwan</div>
-    <button class="icon-btn" onclick="go('settings')">⚙️</button>
+    <div style="display:flex;gap:6px">
+      <button class="icon-btn" onclick="go('settings')" title="Settings">⚙️</button>
+      <button class="icon-btn" onclick="doLogout()" title="Sign Out" style="color:var(--exp)">⏻</button>
+    </div>
   </div>
 </aside>
 
@@ -408,6 +454,10 @@ input,select{font-family:'Inter',sans-serif}
       <div class="card mb14">
         <div class="ctitle">Security</div>
         <div class="sett-row">
+          <div><div class="sett-lbl">Login Password</div><div class="sett-desc">Protects the whole app on every new session. Leave blank to disable.</div></div>
+          <input type="password" class="sett-inp" id="s-loginpass" placeholder="password" oninput="saveSett()">
+        </div>
+        <div class="sett-row">
           <div><div class="sett-lbl">Income PIN</div><div class="sett-desc">4-digit PIN to lock the Income tab. Leave blank to disable.</div></div>
           <input type="password" class="sett-inp" id="s-pin" placeholder="••••" maxlength="4" oninput="saveSett()">
         </div>
@@ -570,6 +620,55 @@ let profilePic=localStorage.getItem('rfq_pic')||'';
 // category filter state: { tabId: catName|null }
 let catFilters={};
 
+// ── LOGIN ──
+let isAuthed=sessionStorage.getItem('rfq_auth')==='1';
+function applyLoginPfp(){
+  const img=document.getElementById('login-pfp-img'),init=document.getElementById('login-pfp-init');
+  if(!img||!init) return;
+  const n=sett.name||'R'; init.textContent=n.charAt(0).toUpperCase();
+  const el=document.getElementById('login-app-name'); if(el) el.textContent=n+"'s Finance";
+  if(profilePic){ img.src=profilePic; img.style.display='block'; init.style.display='none'; }
+  else { img.style.display='none'; init.style.display='block'; }
+}
+function showLogin(){
+  applyLoginPfp();
+  const hint=document.getElementById('login-hint');
+  if(hint) hint.textContent=sett.loginPass?'':'No password is set — click Sign In to enter';
+  const u=document.getElementById('l-user'),p=document.getElementById('l-pass');
+  if(u) u.value=''; if(p) p.value='';
+  clearLoginErr();
+  document.getElementById('login-screen').style.display='flex';
+  document.querySelector('.layout').style.display='none';
+  document.querySelector('.bnav').style.removeProperty('display');
+}
+function hideLogin(){
+  document.getElementById('login-screen').style.display='none';
+  document.querySelector('.layout').style.display='flex';
+}
+function doLogin(){
+  const user=(document.getElementById('l-user').value||'').trim();
+  const pass=document.getElementById('l-pass').value||'';
+  const expectedUser=(sett.name||'Rizwan').toLowerCase();
+  const expectedPass=sett.loginPass||'';
+  if(!expectedPass){ authSuccess(); return; }
+  if(user.toLowerCase()!==expectedUser){ showLoginErr('❌ Invalid username'); return; }
+  if(pass!==expectedPass){ showLoginErr('❌ Wrong password'); return; }
+  authSuccess();
+}
+function authSuccess(){
+  sessionStorage.setItem('rfq_auth','1'); isAuthed=true; hideLogin();
+}
+function showLoginErr(msg){
+  const el=document.getElementById('login-err'); if(el) el.textContent=msg;
+}
+function clearLoginErr(){
+  const el=document.getElementById('login-err'); if(el) el.textContent='';
+}
+function doLogout(){
+  if(!confirm('Sign out?')) return;
+  sessionStorage.removeItem('rfq_auth'); isAuthed=false; lockIncome(); showLogin();
+}
+
 function save(){
   localStorage.setItem('rfq_txs',JSON.stringify(txs));
   localStorage.setItem('rfq_set',JSON.stringify(sett));
@@ -620,6 +719,7 @@ function handlePicUpload(e){
 }
 function applyPic(){
   [['pic-img','pic-init'],['pic-img2','pic-init2']].forEach(([iid,initId])=>{ const img=document.getElementById(iid),init=document.getElementById(initId); if(profilePic){ img.src=profilePic; img.style.display='block'; if(init) init.style.display='none'; } else{ img.style.display='none'; if(init) init.style.display='block'; } });
+  applyLoginPfp();
 }
 
 // ── NAVIGATION ──
@@ -864,13 +964,14 @@ function renderCustomList(){
 function loadSettings(){
   document.getElementById('s-name').value=sett.name||'';
   document.getElementById('s-pin').value=sett.pin||'';
+  const lp=document.getElementById('s-loginpass'); if(lp) lp.value=sett.loginPass||'';
   document.getElementById('s-lim').value=sett.limit||1000;
   updateSbUI(sbReady); renderTabsManage(); renderCatManage();
   const sel=document.getElementById('cat-tab-select');
   while(sel.options.length>4) sel.remove(4);
   sett.customTabs.forEach(t=>{ const o=document.createElement('option'); o.value=t.id; o.textContent=`${t.icon} ${t.name}`; sel.appendChild(o); });
 }
-function saveSett(){ sett.name=document.getElementById('s-name').value.trim()||'Rizwan'; sett.pin=document.getElementById('s-pin').value.trim(); sett.limit=parseFloat(document.getElementById('s-lim').value)||1000; save(); document.getElementById('sb-name-lbl').textContent=sett.name; }
+function saveSett(){ sett.name=document.getElementById('s-name').value.trim()||'Rizwan'; sett.pin=document.getElementById('s-pin').value.trim(); sett.loginPass=document.getElementById('s-loginpass')?.value.trim()||''; sett.limit=parseFloat(document.getElementById('s-lim').value)||1000; save(); document.getElementById('sb-name-lbl').textContent=sett.name; applyLoginPfp(); }
 function exportData(){ const d={txs,sett,exportedAt:new Date().toISOString(),app:'RizwanFinance',v:'2.0'}; const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'})); a.download=`rizwan-finance-${todayStr()}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); toast('✅ Exported!'); }
 function importData(e){ const file=e.target.files[0]; if(!file) return; const r=new FileReader(); r.onload=ev=>{ try{ const d=JSON.parse(ev.target.result); if(!Array.isArray(d.txs)) throw 0; if(!confirm(`Import ${d.txs.length} entries? Replaces all current data.`)) return; txs=d.txs; if(d.sett) sett={...sett,...d.sett}; save(); toast('✅ Imported! Reloading…'); setTimeout(()=>location.reload(),1000); }catch{ toast('⚠️ Invalid file'); } }; r.readAsText(file); e.target.value=''; }
 function resetAll(){ if(!confirm('Delete ALL data permanently?')) return; if(sb&&sbReady) sb.from('transactions').delete().neq('id','').catch(console.error); txs=[]; save(); location.reload(); }
@@ -916,7 +1017,13 @@ async function dbWrite(tx){ if(!sb||!sbReady) return; showBadge('syncing'); try{
 async function dbDelete(id){ if(!sb||!sbReady) return; showBadge('syncing'); try{ const {error}=await sb.from('transactions').delete().eq('id',id); if(error) throw error; showBadge('synced'); }catch(e){ console.error(e); showBadge('error'); } }
 
 // ── INIT ──
-function init(){ buildPinPad(); applyPic(); buildNav(); document.getElementById('sb-name-lbl').textContent=sett.name||'Rizwan'; renderHome(); initDB(); }
+function init(){
+  buildPinPad(); applyPic(); buildNav();
+  document.getElementById('sb-name-lbl').textContent=sett.name||'Rizwan';
+  renderHome(); initDB();
+  // Show login screen if a password is set and user is not yet authenticated this session
+  if(sett.loginPass&&!isAuthed){ showLogin(); }
+}
 init();
 </script>
 </body>
