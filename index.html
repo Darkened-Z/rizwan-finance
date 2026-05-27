@@ -371,7 +371,7 @@ input,select{font-family:'Inter',sans-serif}
       <div class="ctitle">Expenses by Category</div>
       <div id="exp-cat-breakdown" class="cat-breakdown"></div>
       <div class="tx-toolbar">
-        <input type="search" class="tx-search" id="exp-search" placeholder="Search self expenses…" oninput="renderExpList()">
+        <input type="search" class="tx-search" id="exp-search" placeholder="Search expenses…" oninput="renderExpList()">
         <button onclick="openAddModal('expenses')" style="padding:7px 14px;background:var(--exp);color:#fff;border-radius:8px;font-size:12px;font-weight:700;border:none;cursor:pointer">＋ Add</button>
       </div>
       <div id="exp-list"></div>
@@ -482,7 +482,7 @@ input,select{font-family:'Inter',sans-serif}
           <select class="fs" id="cat-tab-select" onchange="renderCatManage()">
             <option value="home">🏠 Home</option>
             <option value="income">💰 Income</option>
-            <option value="expenses">💸 Self</option>
+            <option value="expenses">💸 Expenses</option>
             <option value="business">💼 Business</option>
             <option value="savings">🏦 Savings</option>
           </select>
@@ -702,7 +702,7 @@ function getCats(tab){
 const FIXED_TABS=[
   {id:'home',    name:'Home',     icon:'🏠',fixed:true},
   {id:'income',  name:'Income',   icon:'💰',fixed:true},
-  {id:'expenses',name:'Self',     icon:'💸',fixed:true},
+  {id:'expenses',name:'Expenses',  icon:'💸',fixed:true},
   {id:'business',name:'Business', icon:'💼',fixed:true},
   {id:'lent',    name:'Lent',     icon:'🤝',fixed:true},
   {id:'savings', name:'Savings',  icon:'🏦',fixed:true}
@@ -927,7 +927,7 @@ function renderIncomeList(){
 
 // ── EXPENSES ──
 function renderExpenses(){
-  const pfx=curMonthPfx(),list=txs.filter(t=>t.tab==='expenses');
+  const pfx=curMonthPfx(),list=txs.filter(t=>t.tab==='expenses'&&t.type!=='income');
   const mExp=list.filter(t=>t.date.startsWith(pfx)).reduce((s,t)=>s+t.amt,0);
   const todExp=list.filter(t=>t.date===todayStr()).reduce((s,t)=>s+t.amt,0);
   const total=list.reduce((s,t)=>s+t.amt,0);
@@ -942,7 +942,7 @@ function renderExpenses(){
 }
 function renderExpList(){
   const q=(document.getElementById('exp-search')?.value||'').toLowerCase();
-  let list=txs.filter(t=>t.tab==='expenses');
+  let list=txs.filter(t=>t.tab==='expenses'&&t.type!=='income');
   const ac=catFilters['expenses']; if(ac) list=list.filter(t=>t.cat===ac);
   if(q) list=list.filter(t=>((t.cat||'')+(t.desc||'')).toLowerCase().includes(q));
   document.getElementById('exp-list').innerHTML=sortTxs(list).length?renderGroup(sortTxs(list),txRow):`<div class="empty"><div class="empty-e">💸</div><div class="empty-t">${catFilters['expenses']?'No entries for this category':'No expenses yet'}</div></div>`;
@@ -1071,7 +1071,7 @@ function submitEntry(){ const amt=parseFloat(document.getElementById('m-amt').va
 function delTx(id){ if(!confirm('Delete this entry?')) return; txs=txs.filter(t=>t.id!==id); save(); if(sbReady) dbDelete(id); refresh(); toast('🗑️ Deleted!'); }
 
 // ── NAVIGATION ──
-const TITLES={home:'Home',income:'Income',expenses:'Self',business:'Business',lent:'Lent',savings:'Savings',settings:'Settings'};
+const TITLES={home:'Home',income:'Income',expenses:'Expenses',business:'Business',lent:'Lent',savings:'Savings',settings:'Settings'};
 let curPage='home';
 function go(page){
   // Lock previously locked tab when leaving
