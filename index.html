@@ -991,7 +991,7 @@ function renderSavList(){
 
 // ── CUSTOM TABS ──
 function renderCustomTab(tabId){
-  const tabDef=sett.customTabs.find(t=>t.id===tabId); if(!tabDef) return;
+  const tabDef=getAllTabs().find(t=>t.id===tabId); if(!tabDef) return;
   const pfx=curMonthPfx(),list=txs.filter(t=>t.tab===tabId);
   const inc=list.filter(t=>t.type==='income').reduce((s,t)=>s+t.amt,0);
   const exp=list.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amt,0);
@@ -1122,8 +1122,10 @@ function refresh(){
 let sb=null,sbReady=false,sbChannel=null;
 function showBadge(state){ const b=document.getElementById('sync-badge'); if(!b) return; const map={local:{cls:'local',txt:'⚪ Local'},syncing:{cls:'syncing',txt:'🟡 Syncing…'},synced:{cls:'synced',txt:'🟢 Synced'},error:{cls:'error',txt:'🔴 Error'}}; const s=map[state]||map.local; b.className='sync-badge '+s.cls; b.textContent=s.txt; }
 function updateSbUI(c){ const lbl=document.getElementById('sb-conn-label'),dot=document.getElementById('sb-dot'); if(!lbl) return; if(c){ lbl.textContent='🟢 Connected — Real-time sync active'; if(dot) dot.style.background='var(--inc)'; } else { lbl.textContent='Connecting…'; if(dot) dot.style.background='var(--tx3)'; } }
-async function initDB(){ if(typeof supabase==='undefined'){ showBadge('error'); return; } try{ sb=supabase.createClient(SB_URL,SB_KEY); showBadge('syncing'); const {data,error}=await sb.from('transactions').select('*'); if(error) throw error; if(data&&data.length){ txs=data; localStorage.setItem('rfq_txs',JSON.stringify(txs)); } sbReady=true; refresh(); showBadge('synced'); updateSbUI(true); if(sbChannel) sb.removeChannel(sbChannel); sbChannel=sb.channel('rt').on('postgres_changes',{event:'*',schema:'public',table:'transactions'},async()=>{ const {data:d}=await sb.from('transactions').select('*'); if(d){ txs=d; localStorage.setItem('rfq_txs',JSON.stringify(txs)); refresh(); showBadge('synced'); } }).subscribe(s=>{ if(s==='SUBSCRIBED') showBadge('synced'); if(s==='CHANNEL_ERROR') showBadge('error'); }); }catch(e){ console.error(e); sbReady=false; showBadge('error'); toast('🔴 Supabase: '+(e.message||String(e))); } }
-async function dbWrite(tx){ if(!sb||!sbReady) return; showBadge('syncing'); try{ const {error}=await sb.from('transactions').upsert(tx); if(error) throw error; showBadge('synced'); }catch(e){ console.error(e); showBadge('error'); } }
+async function initDB(){ if(typeof supabase==='undefined'){ showBadge('error'); return; } try{ sb=supabase.createClient(SB_URL,SB_KEY); showBadge('syncing'); const {data,error}=await sb.from('transactions').select('*'); if(error) throw error; if(data&&data.length){ txs=data.map(fromRow); localStorage.setItem('rfq_txs',JSON.stringify(txs)); } sbReady=true; refresh(); showBadge('synced'); updateSbUI(true); if(sbChannel) sb.removeChannel(sbChannel); sbChannel=sb.channel('rt').on('postgres_changes',{event:'*',schema:'public',table:'transactions'},async()=>{ const {data:d}=await sb.from('transactions').select('*'); if(d){ txs=d.map(fromRow); localStorage.setItem('rfq_txs',JSON.stringify(txs)); refresh(); showBadge('synced'); } }).subscribe(s=>{ if(s==='SUBSCRIBED') showBadge('synced'); if(s==='CHANNEL_ERROR') showBadge('error'); }); }catch(e){ console.error(e); sbReady=false; showBadge('error'); toast('🔴 Supabase: '+(e.message||String(e))); } }
+function toRow(tx){ const r={...tx,returned_date:tx.returnedDate||''}; delete r.returnedDate; return r; }
+function fromRow(r){ return {...r,returnedDate:r.returned_date||''}; }
+async function dbWrite(tx){ if(!sb||!sbReady) return; showBadge('syncing'); try{ const {error}=await sb.from('transactions').upsert(toRow(tx)); if(error) throw error; showBadge('synced'); }catch(e){ console.error(e); showBadge('error'); } }
 async function dbDelete(id){ if(!sb||!sbReady) return; showBadge('syncing'); try{ const {error}=await sb.from('transactions').delete().eq('id',id); if(error) throw error; showBadge('synced'); }catch(e){ console.error(e); showBadge('error'); } }
 
 // ── INIT ──
