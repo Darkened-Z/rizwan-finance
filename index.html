@@ -617,6 +617,8 @@ input,select{font-family:'Inter',sans-serif}
 <script>
 const SB_URL='https://iqpjzjmfzjjnvirtczrb.supabase.co';
 const SB_KEY='sb_publishable_klMvuah9PSuyLUzg5qKWZA_2SJ_9hCo';
+// Hardcoded login password — works on every device & incognito
+const APP_PASS='6185';
 
 // ── DEFAULT CATEGORIES ──
 const DEFAULT_CATS={
@@ -667,7 +669,8 @@ function doLogin(){
   const user=(document.getElementById('l-user').value||'').trim();
   const pass=document.getElementById('l-pass').value||'';
   const expectedUser=(sett.name||'Rizwan').toLowerCase();
-  const expectedPass=sett.loginPass||'';
+  // APP_PASS (hardcoded) takes priority; fallback to settings password
+  const expectedPass=APP_PASS||sett.loginPass||'';
   if(!expectedPass){ authSuccess(); return; }
   if(user.toLowerCase()!==expectedUser){ showLoginErr('❌ Invalid username'); return; }
   if(pass!==expectedPass){ showLoginErr('❌ Wrong password'); return; }
@@ -1128,8 +1131,8 @@ function init(){
   buildPinPad(); applyPic(); buildNav();
   document.getElementById('sb-name-lbl').textContent=sett.name||'Rizwan';
   renderHome(); initDB();
-  // Show login screen if a password is set and user is not yet authenticated this session
-  if(sett.loginPass&&!isAuthed){ showLogin(); }
+  // Show login if APP_PASS (hardcoded) or settings password is set and not yet authed this session
+  if((APP_PASS||sett.loginPass)&&!isAuthed){ showLogin(); }
 }
 init();
 </script>
