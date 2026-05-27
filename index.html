@@ -731,9 +731,9 @@ const nowTime     =()=>new Date().toTimeString().slice(0,5);
 const curMonthPfx =()=>new Date().toISOString().slice(0,7);
 const pkr=n=>'PKR '+Math.abs(Math.round(n)).toLocaleString('en-PK');
 function emojiOf(cat,tab){
-  const all=getCats(tab||'expenses');
-  const f=all.find(c=>c.n===cat); if(f) return f.e;
+  if(tab){ const all=getCats(tab); const f=all.find(c=>c.n===cat); if(f) return f.e; }
   for(const k of Object.keys(DEFAULT_CATS)){ const x=DEFAULT_CATS[k].find(c=>c.n===cat); if(x) return x.e; }
+  for(const k of Object.keys(sett.userCats||{})){ const uc=sett.userCats[k]; if(uc){ const x=uc.find(c=>c.n===cat); if(x) return x.e; } }
   return '💡';
 }
 function fmtDate(ds){
@@ -826,15 +826,19 @@ function txRow(t){
 function chartOpts(){ return {responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#7A9CC0',font:{family:'Inter',size:10}}}},scales:{x:{ticks:{color:'#7A9CC0',font:{family:'Inter',size:9},maxTicksLimit:15},grid:{color:'rgba(30,46,78,.4)'}},y:{beginAtZero:true,ticks:{color:'#7A9CC0',font:{family:'Inter',size:9}},grid:{color:'rgba(30,46,78,.4)'}}}}; }
 
 // ── CATEGORY BREAKDOWN (clickable) ──
-function renderCatBreakdown(containerId, tabId, list, colorVar){
+function renderCatBreakdown(containerId, tabId, list, colorVar, allCats=false){
   const el=document.getElementById(containerId); if(!el) return;
-  const cats=getCats(tabId);
   const map={};
-  list.forEach(t=>{ map[t.cat]=(map[t.cat]||0)+t.amt; });
+  list.forEach(t=>{ if(t.cat) map[t.cat]=(map[t.cat]||0)+t.amt; });
   const total=Object.values(map).reduce((s,v)=>s+v,0)||1;
   const activeCat=catFilters[tabId]||null;
-  const rows=cats.filter(c=>map[c.n]>0).map(c=>{
-    const amt=map[c.n]||0; const pct=Math.round((amt/total)*100);
+  // allCats=true → derive category list from actual data (used for cross-tab master views)
+  const catList=allCats
+    ? Object.keys(map).sort((a,b)=>map[b]-map[a]).map(n=>({e:emojiOf(n,''),n}))
+    : getCats(tabId).filter(c=>map[c.n]>0);
+  const rows=catList.map(c=>{
+    const amt=map[c.n]||0; if(!amt) return '';
+    const pct=Math.round((amt/total)*100);
     const isActive=activeCat===c.n;
     return `<div class="cat-row ${isActive?'active':''}" onclick="setCatFilter('${tabId}','${c.n.replace(/'/g,"\\'")}')">
       <div class="cb-ico">${c.e}</div>
@@ -843,9 +847,9 @@ function renderCatBreakdown(containerId, tabId, list, colorVar){
       <div class="cb-amt" style="color:${colorVar}">${pkr(amt)}</div>
       <div class="cb-count">${pct}%</div>
     </div>`;
-  }).join('');
+  }).filter(Boolean).join('');
   if(!rows){ el.innerHTML=''; return; }
-  el.innerHTML=`<button class="all-chip ${!activeCat?'on':''}" onclick="setCatFilter('${tabId}',null)">✦ All Categories</button>${rows}`;
+  el.innerHTML=`<button class="all-chip ${!activeCat?'on':''}" onclick="setCatFilter('${tabId}',null)">✦ All</button>${rows}`;
 }
 
 function setCatFilter(tabId, cat){
@@ -905,21 +909,21 @@ function renderHomeList(){
 
 // ── INCOME ──
 function renderIncomeContent(){
-  const pfx=curMonthPfx(),list=txs.filter(t=>t.tab==='income');
+  const pfx=curMonthPfx(),list=txs.filter(t=>t.type==='income');
   const mInc=list.filter(t=>t.date.startsWith(pfx)).reduce((s,t)=>s+t.amt,0);
   const total=list.reduce((s,t)=>s+t.amt,0); const months=new Set(list.map(t=>t.date.slice(0,7))).size||1;
   document.getElementById('income-stats').innerHTML=`
-    <div class="stat-card"><div class="sc-top"><div class="sc-label">This Month</div><div class="sc-ico">💰</div></div><div class="sc-val i">${pkr(mInc)}</div><div class="sc-sub">income</div></div>
-    <div class="stat-card"><div class="sc-top"><div class="sc-label">All Time</div><div class="sc-ico">📊</div></div><div class="sc-val i">${pkr(total)}</div><div class="sc-sub">total</div></div>
+    <div class="stat-card"><div class="sc-top"><div class="sc-label">This Month</div><div class="sc-ico">💰</div></div><div class="sc-val i">${pkr(mInc)}</div><div class="sc-sub">all sources</div></div>
+    <div class="stat-card"><div class="sc-top"><div class="sc-label">All Time</div><div class="sc-ico">📊</div></div><div class="sc-val i">${pkr(total)}</div><div class="sc-sub">total income</div></div>
     <div class="stat-card"><div class="sc-top"><div class="sc-label">Avg / Month</div><div class="sc-ico">📈</div></div><div class="sc-val p">${pkr(total/months)}</div><div class="sc-sub">average</div></div>
     <div class="stat-card"><div class="sc-top"><div class="sc-label">Entries</div><div class="sc-ico">📋</div></div><div class="sc-val p">${list.length}</div><div class="sc-sub">records</div></div>`;
-  renderCatBreakdown('income-cat-breakdown','income',list,'var(--inc)');
+  renderCatBreakdown('income-cat-breakdown','income',list,'var(--inc)',true);
   renderIncomeList();
-  renderMonthlyChart('c-income-monthly','income',{datasets:[{label:'Income',backgroundColor:'rgba(0,214,143,.5)',borderColor:'var(--inc)',borderWidth:1.5,borderRadius:4,barPercentage:.6,filter:pfx=>t=>t.tab==='income'&&t.date.startsWith(pfx)}]});
+  renderMonthlyChart('c-income-monthly','income',{datasets:[{label:'Total Income',backgroundColor:'rgba(0,214,143,.5)',borderColor:'var(--inc)',borderWidth:1.5,borderRadius:4,barPercentage:.6,filter:pfx=>t=>t.type==='income'&&t.date.startsWith(pfx)}]});
 }
 function renderIncomeList(){
   const q=(document.getElementById('income-search')?.value||'').toLowerCase();
-  let list=txs.filter(t=>t.tab==='income');
+  let list=txs.filter(t=>t.type==='income');
   const ac=catFilters['income']; if(ac) list=list.filter(t=>t.cat===ac);
   if(q) list=list.filter(t=>((t.cat||'')+(t.desc||'')).toLowerCase().includes(q));
   document.getElementById('income-list').innerHTML=sortTxs(list).length?renderGroup(sortTxs(list),txRow):`<div class="empty"><div class="empty-e">💰</div><div class="empty-t">${catFilters['income']?'No entries for this category':'No income entries yet'}</div></div>`;
@@ -927,22 +931,22 @@ function renderIncomeList(){
 
 // ── EXPENSES ──
 function renderExpenses(){
-  const pfx=curMonthPfx(),list=txs.filter(t=>t.tab==='expenses'&&t.type!=='income');
+  const pfx=curMonthPfx(),list=txs.filter(t=>t.type==='expense');
   const mExp=list.filter(t=>t.date.startsWith(pfx)).reduce((s,t)=>s+t.amt,0);
   const todExp=list.filter(t=>t.date===todayStr()).reduce((s,t)=>s+t.amt,0);
   const total=list.reduce((s,t)=>s+t.amt,0);
   document.getElementById('exp-stats').innerHTML=`
     <div class="stat-card"><div class="sc-top"><div class="sc-label">Today</div><div class="sc-ico">📅</div></div><div class="sc-val e">${pkr(todExp)}</div><div class="sc-sub">spent today</div></div>
-    <div class="stat-card"><div class="sc-top"><div class="sc-label">This Month</div><div class="sc-ico">💸</div></div><div class="sc-val e">${pkr(mExp)}</div><div class="sc-sub">expenses</div></div>
+    <div class="stat-card"><div class="sc-top"><div class="sc-label">This Month</div><div class="sc-ico">💸</div></div><div class="sc-val e">${pkr(mExp)}</div><div class="sc-sub">all spending</div></div>
     <div class="stat-card"><div class="sc-top"><div class="sc-label">All Time</div><div class="sc-ico">📊</div></div><div class="sc-val e">${pkr(total)}</div><div class="sc-sub">total spent</div></div>
     <div class="stat-card"><div class="sc-top"><div class="sc-label">Entries</div><div class="sc-ico">📋</div></div><div class="sc-val p">${list.length}</div><div class="sc-sub">records</div></div>`;
-  renderCatBreakdown('exp-cat-breakdown','expenses',list,'var(--exp)');
+  renderCatBreakdown('exp-cat-breakdown','expenses',list,'var(--exp)',true);
   renderExpList();
-  renderMonthlyChart('c-exp-monthly','expenses',{datasets:[{label:'Expenses',backgroundColor:'rgba(255,75,110,.5)',borderColor:'var(--exp)',borderWidth:1.5,borderRadius:4,barPercentage:.6,filter:pfx=>t=>t.tab==='expenses'&&t.date.startsWith(pfx)}]});
+  renderMonthlyChart('c-exp-monthly','expenses',{datasets:[{label:'Total Expenses',backgroundColor:'rgba(255,75,110,.5)',borderColor:'var(--exp)',borderWidth:1.5,borderRadius:4,barPercentage:.6,filter:pfx=>t=>t.type==='expense'&&t.date.startsWith(pfx)}]});
 }
 function renderExpList(){
   const q=(document.getElementById('exp-search')?.value||'').toLowerCase();
-  let list=txs.filter(t=>t.tab==='expenses'&&t.type!=='income');
+  let list=txs.filter(t=>t.type==='expense');
   const ac=catFilters['expenses']; if(ac) list=list.filter(t=>t.cat===ac);
   if(q) list=list.filter(t=>((t.cat||'')+(t.desc||'')).toLowerCase().includes(q));
   document.getElementById('exp-list').innerHTML=sortTxs(list).length?renderGroup(sortTxs(list),txRow):`<div class="empty"><div class="empty-e">💸</div><div class="empty-t">${catFilters['expenses']?'No entries for this category':'No expenses yet'}</div></div>`;
