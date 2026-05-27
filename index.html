@@ -874,7 +874,7 @@ function renderHome(){
   document.getElementById('home-stats').innerHTML=`
     <div class="stat-card"><div class="sc-top"><div class="sc-label">Total Income</div><div class="sc-ico">💰</div></div><div class="sc-val i">${pkr(inc)}</div><div class="sc-sub">this month</div></div>
     <div class="stat-card"><div class="sc-top"><div class="sc-label">Total Expenses</div><div class="sc-ico">💸</div></div><div class="sc-val e">${pkr(exp)}</div><div class="sc-sub">this month</div></div>
-    <div class="stat-card"><div class="sc-top"><div class="sc-label">Net Balance</div><div class="sc-ico">🎯</div></div><div class="sc-val ${net>=0?'i':'e'}">${pkr(net)}</div><div class="sc-sub">${net>=0?'surplus 🎉':'deficit'}</div></div>
+    <div class="stat-card"><div class="sc-top"><div class="sc-label">Net Income</div><div class="sc-ico">🎯</div></div><div class="sc-val ${net>=0?'i':'e'}">${net>=0?'+':'-'}PKR ${Math.abs(Math.round(net)).toLocaleString('en-PK')}</div><div class="sc-sub">${net>=0?'surplus 🎉':'deficit'}</div></div>
     <div class="stat-card"><div class="sc-top"><div class="sc-label">Savings</div><div class="sc-ico">🏦</div></div><div class="sc-val s">${pkr(sav)}</div><div class="sc-sub">this month</div></div>`;
   document.getElementById('home-mo-lbl').textContent='· '+new Date().toLocaleDateString('en-PK',{month:'long',year:'numeric'});
   // overview bar
