@@ -774,7 +774,7 @@ function handlePicUpload(e){
   const r=new FileReader(); r.onload=ev=>{ profilePic=ev.target.result; localStorage.setItem('rfq_pic',profilePic); applyPic(); pushConfig('profile_pic', profilePic); toast('✅ Profile picture updated!'); }; r.readAsDataURL(file); e.target.value='';
 }
 function applyPic(){
-  [['pic-img','pic-init'],['pic-img2','pic-init2']].forEach(([iid,initId])=>{ const img=document.getElementById(iid),init=document.getElementById(initId); if(profilePic){ img.src=profilePic; img.style.display='block'; if(init) init.style.display='none'; } else{ img.style.display='none'; if(init) init.style.display='block'; } });
+  [['pic-img','pic-init'],['pic-img2','pic-init2']].forEach(([iid,initId])=>{ const img=document.getElementById(iid),init=document.getElementById(initId); if(!img) return; if(profilePic){ img.src=profilePic; img.style.display='block'; if(init) init.style.display='none'; } else{ img.style.display='none'; if(init) init.style.display='block'; } });
   applyLoginPfp();
 }
 
@@ -1040,7 +1040,7 @@ function renderLent(){
     {label:'I Borrowed',backgroundColor:'rgba(59,130,246,.5)',borderColor:'var(--lent)',borderWidth:1.5,borderRadius:4,barPercentage:.6,categoryPercentage:.75,filter:pfx=>t=>t.type==='borrowed'&&t.date.startsWith(pfx)}
   ]});
 }
-function markReturned(id){ const t=txs.find(x=>String(x.id)===String(id)); if(!t) return; t.returned=true; t.returnedDate=todayStr(); save(); if(sbReady) dbWrite(t); toast('✅ Marked as returned!'); renderLent(); }
+function markReturned(id){ const t=txs.find(x=>String(x.id)===String(id)); if(!t) return; t.returned=true; t.returnedDate=todayStr(); save(); if(sbReady) dbWrite(t); toast('✅ Marked as returned!'); refresh(); }
 
 // ── SAVINGS ──
 function renderSavings(){
