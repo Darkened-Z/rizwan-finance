@@ -9,36 +9,36 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{
-  /* B&W BENTO PALETTE */
+  /* DARK BENTO PALETTE — softer than pure white */
   --bg:#000000;            /* pure black canvas */
-  --sf:#FFFFFF;            /* white cards (THE bento tiles) */
-  --sf2:#F4F4F5;           /* light gray inner blocks */
-  --sf3:#E4E4E7;           /* slightly darker inner */
-  --bd:#E4E4E7;            /* light border on white */
-  --bd2:#D4D4D8;
-  /* dark surfaces (sidebar / topbar / nav / login / pin) */
-  --dk:#0A0A0A;
-  --dk2:#171717;
-  --dk3:#262626;
-  --dkbd:#1F1F1F;
-  /* accent — pure black for buttons/active states (true mono) */
-  --cyan:#000000;
-  --cyan2:#262626;
-  /* finance colors — muted so they read on white */
-  --inc:#15803D;           /* forest green */
-  --exp:#B91C1C;           /* deep red */
-  --amb:#B45309;           /* amber */
-  --pur:#6B21A8;
-  --lent:#1D4ED8;
-  --sav:#6B21A8;
-  /* text — dark on white cards */
-  --tx:#18181B;
-  --tx2:#71717A;
-  --tx3:#A1A1AA;
-  /* text — light on dark surfaces */
+  --sf:#0F0F10;            /* dark cards (THE bento tiles) */
+  --sf2:#161618;           /* slightly elevated inner blocks */
+  --sf3:#1F1F22;           /* most elevated */
+  --bd:#1F1F22;            /* subtle card border */
+  --bd2:#2A2A2E;
+  /* sidebar / topbar / nav — slightly different from bg/cards for separation */
+  --dk:#080809;
+  --dk2:#1A1A1C;
+  --dk3:#28282C;
+  --dkbd:#1F1F22;
+  /* accent — white for buttons (max contrast on dark) */
+  --cyan:#FFFFFF;
+  --cyan2:#E4E4E7;
+  /* finance colors — bright enough to pop on dark */
+  --inc:#22C55E;           /* fresh green */
+  --exp:#EF4444;           /* clear red */
+  --amb:#F59E0B;           /* amber */
+  --pur:#A855F7;
+  --lent:#3B82F6;
+  --sav:#A855F7;
+  /* text on dark cards */
+  --tx:#FAFAFA;
+  --tx2:#A1A1AA;
+  --tx3:#71717A;
+  /* text — light on dark surfaces (same as cards now) */
   --txw:#FAFAFA;
   --txw2:#A1A1AA;
-  --txw3:#52525B;
+  --txw3:#71717A;
   --sw:225px;--nh:62px;
   --r:18px;                /* chunkier bento radius */
   --r2:12px;
@@ -64,7 +64,7 @@ input,select{font-family:'Inter',sans-serif}
 .nav-section{padding:10px 10px;flex:1;overflow-y:auto}
 .ni{display:flex;align-items:center;gap:11px;padding:11px 14px;background:transparent;color:var(--txw2);font-size:13px;font-weight:500;width:100%;text-align:left;border-radius:10px;transition:all .18s;position:relative;margin-bottom:2px}
 .ni:hover{color:var(--txw);background:var(--dk2)}
-.ni.on{color:#000;background:#FFF;font-weight:700}
+.ni.on{color:#000;background:#FAFAFA;font-weight:800}
 .ni-ico{font-size:17px;width:22px;text-align:center;flex-shrink:0}
 .ni-lock{font-size:10px;position:absolute;right:14px;color:var(--txw3)}
 .ni.on .ni-lock{color:var(--tx2)}
@@ -123,23 +123,23 @@ input,select{font-family:'Inter',sans-serif}
 .cat-breakdown{margin-bottom:14px}
 .cat-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;cursor:pointer;transition:all .18s;border:1px solid transparent;color:var(--tx)}
 .cat-row:hover{background:var(--sf2);border-color:var(--bd)}
-.cat-row.active{background:#000;border-color:#000;color:#FFF}
-.cat-row.active .cb-name,.cat-row.active .cb-count{color:#FFF}
+.cat-row.active{background:#FAFAFA;border-color:#FAFAFA;color:#000}
+.cat-row.active .cb-name,.cat-row.active .cb-count{color:#000}
 .cb-ico{font-size:18px;width:28px;text-align:center;flex-shrink:0}
 .cb-name{font-size:12px;font-weight:700;flex:1;color:var(--tx)}
 .cb-bar-wrap{flex:2;height:5px;background:var(--sf3);border-radius:3px;overflow:hidden;max-width:120px}
-.cat-row.active .cb-bar-wrap{background:rgba(255,255,255,.18)}
+.cat-row.active .cb-bar-wrap{background:rgba(0,0,0,.15)}
 .cb-bar{height:100%;border-radius:3px;transition:width .5s ease}
 .cb-amt{font-size:12px;font-weight:800;text-align:right;min-width:80px;flex-shrink:0;font-variant-numeric:tabular-nums}
 .cb-count{font-size:10px;color:var(--tx2);margin-left:6px;flex-shrink:0;font-weight:600}
 .all-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--bd2);background:var(--sf2);color:var(--tx);margin-bottom:10px;transition:all .18s}
 .all-chip:hover{background:var(--sf3)}
-.all-chip.on{background:#000;border-color:#000;color:#FFF}
+.all-chip.on{background:#FAFAFA;border-color:#FAFAFA;color:#000}
 
 /* TRANSACTION ROWS */
 .tx-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .tx-search{flex:1;min-width:150px;padding:10px 12px 10px 36px;background:var(--sf2);border:1px solid var(--bd);border-radius:10px;color:var(--tx);font-size:12px;font-weight:500;outline:none;transition:all .2s;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='%23A1A1AA' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:12px center}
-.tx-search::placeholder{color:var(--tx3)}.tx-search:focus{border-color:#000;background:#FFF}
+.tx-search::placeholder{color:var(--tx3)}.tx-search:focus{border-color:#FAFAFA;background:var(--sf3)}
 .date-grp{font-size:10px;font-weight:800;color:var(--tx2);text-transform:uppercase;letter-spacing:1.2px;padding:10px 0 4px;display:flex;align-items:center;gap:8px}
 .date-grp::after{content:'';flex:1;height:1px;background:var(--bd)}
 .tx-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;margin-bottom:3px;transition:background .15s;color:var(--tx)}
@@ -161,11 +161,11 @@ input,select{font-family:'Inter',sans-serif}
 .tx-date-sm{font-size:10px;color:var(--tx2);margin-top:2px;font-weight:500}
 .tx-acts{display:flex;gap:4px;margin-left:6px;flex-shrink:0}
 .ta{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;border:1px solid var(--bd);background:var(--sf2);color:var(--tx);transition:all .15s}
-.ta:hover{background:#000;color:#FFF;border-color:#000}
+.ta:hover{background:#FAFAFA;color:#000;border-color:#FAFAFA}
 .ta.dl{color:var(--exp)}
 .ta.dl:hover{background:var(--exp);color:#FFF;border-color:var(--exp)}
 .ta.ok{color:var(--inc)}
-.ta.ok:hover{background:var(--inc);color:#FFF;border-color:var(--inc)}
+.ta.ok:hover{background:var(--inc);color:#000;border-color:var(--inc)}
 .ret-badge{padding:3px 8px;border-radius:10px;font-size:9px;font-weight:800;background:rgba(21,128,61,.12);color:var(--inc);margin-left:6px;letter-spacing:.3px}
 .empty{text-align:center;padding:32px 16px;color:var(--tx2)}
 .empty-e{font-size:40px;margin-bottom:8px}
@@ -182,10 +182,10 @@ input,select{font-family:'Inter',sans-serif}
 .pin-sub{font-size:12px;color:var(--tx2);margin-top:6px}
 .pin-dots{display:flex;gap:14px;margin:22px 0 26px}
 .pin-dot{width:14px;height:14px;border-radius:50%;background:var(--sf3);transition:background .15s}
-.pin-dot.filled{background:#000}
+.pin-dot.filled{background:#FAFAFA}
 .pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:220px}
 .pin-btn{padding:16px;border-radius:14px;background:var(--sf2);border:1px solid var(--bd);color:var(--tx);font-size:18px;font-weight:800;cursor:pointer;transition:all .15s}
-.pin-btn:hover{background:#000;color:#FFF;border-color:#000}
+.pin-btn:hover{background:#FAFAFA;color:#000;border-color:#FAFAFA}
 .pin-btn:active{transform:scale(.94)}
 .pin-del{background:var(--sf2);border-color:var(--bd);color:var(--exp)}
 .pin-del:hover{background:var(--exp);color:#FFF;border-color:var(--exp)}
@@ -196,7 +196,7 @@ input,select{font-family:'Inter',sans-serif}
 .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
 .modal-title{font-size:18px;font-weight:800;color:var(--tx);letter-spacing:-.3px}
 .modal-x{width:32px;height:32px;background:var(--sf2);border-radius:50%;color:var(--tx2);font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;transition:all .15s}
-.modal-x:hover{background:#000;color:#FFF}
+.modal-x:hover{background:#FAFAFA;color:#000}
 .type-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
 .topt{padding:11px;border:1.5px solid var(--bd2);border-radius:11px;background:var(--sf2);color:var(--tx2);font-size:12px;font-weight:800;transition:all .2s;cursor:pointer}
 .topt.i.on{border-color:var(--inc);background:rgba(21,128,61,.1);color:var(--inc)}
@@ -206,10 +206,10 @@ input,select{font-family:'Inter',sans-serif}
 .fg{margin-bottom:14px}
 .fl{font-size:10px;font-weight:800;color:var(--tx2);margin-bottom:6px;display:block;text-transform:uppercase;letter-spacing:.8px}
 .fi,.fs{width:100%;padding:11px 14px;background:var(--sf2);border:1.5px solid var(--bd);border-radius:11px;color:var(--tx);font-size:13px;font-weight:500;outline:none;transition:all .2s}
-.fi::placeholder{color:var(--tx3)}.fi:focus,.fs:focus{border-color:#000;background:#FFF}
-.fs option{background:#FFF;color:var(--tx)}
-.modal-btn{width:100%;padding:13px;background:#000;color:#FFF;border-radius:12px;font-size:14px;font-weight:800;margin-top:6px;cursor:pointer;border:none;transition:background .2s;letter-spacing:-.2px}
-.modal-btn:hover{background:#262626}
+.fi::placeholder{color:var(--tx3)}.fi:focus,.fs:focus{border-color:#FAFAFA;background:var(--sf3)}
+.fs option{background:var(--sf2);color:var(--tx)}
+.modal-btn{width:100%;padding:13px;background:#FAFAFA;color:#000;border-radius:12px;font-size:14px;font-weight:800;margin-top:6px;cursor:pointer;border:none;transition:background .2s;letter-spacing:-.2px}
+.modal-btn:hover{background:#FFF}
 
 /* MANAGE */
 .manage-row{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--sf2);border:1px solid var(--bd);border-radius:12px;margin-bottom:8px;color:var(--tx)}
@@ -218,7 +218,7 @@ input,select{font-family:'Inter',sans-serif}
 .manage-sub{font-size:10px;color:var(--tx2);margin-top:1px;font-weight:600}
 .manage-acts{display:flex;gap:5px}
 .mbtn{padding:6px 12px;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer;border:1px solid var(--bd);background:var(--sf);color:var(--tx);transition:all .15s}
-.mbtn.edit:hover{background:#000;color:#FFF;border-color:#000}
+.mbtn.edit:hover{background:#FAFAFA;color:#000;border-color:#FAFAFA}
 .mbtn.del{color:var(--exp)}.mbtn.del:hover{background:var(--exp);color:#FFF;border-color:var(--exp)}
 .mbtn.fixed{background:var(--sf3);color:var(--tx3);cursor:default;font-size:10px;border-color:var(--bd2)}
 
@@ -228,7 +228,7 @@ input,select{font-family:'Inter',sans-serif}
 .sett-lbl{font-size:13px;font-weight:700;color:var(--tx)}
 .sett-desc{font-size:11px;color:var(--tx2);margin-top:2px;font-weight:500}
 .sett-inp{padding:8px 12px;background:var(--sf2);border:1.5px solid var(--bd);border-radius:10px;color:var(--tx);font-size:13px;font-weight:700;width:140px;text-align:right;outline:none;transition:all .2s}
-.sett-inp:focus{border-color:#000;background:#FFF}
+.sett-inp:focus{border-color:#FAFAFA;background:var(--sf3)}
 .danger-btn{padding:12px 16px;background:var(--sf2);border:1px solid var(--bd);border-radius:12px;color:var(--exp);font-size:12px;font-weight:800;cursor:pointer;width:100%;margin-top:6px;transition:all .15s}
 .danger-btn:hover{background:var(--exp);color:#FFF;border-color:var(--exp)}
 
@@ -301,21 +301,21 @@ input,select{font-family:'Inter',sans-serif}
 .bud-bar{height:4px;background:var(--sf3);border-radius:2px;margin-top:10px;overflow:hidden}
 .bud-fill{height:100%;border-radius:2px;transition:width .6s}
 .bud-set-btn{padding:11px 18px;background:var(--sf);border:1.5px dashed var(--bd2);border-radius:var(--r2);color:var(--tx2);font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:14px;transition:all .15s;width:100%}
-.bud-set-btn:hover{border-color:#000;border-style:solid;color:#000;background:var(--sf2)}
+.bud-set-btn:hover{border-color:#FAFAFA;border-style:solid;color:#FAFAFA;background:var(--sf2)}
 
 /* LOGIN SCREEN */
 .login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
 .login-card{background:var(--sf);border:1px solid var(--bd);border-radius:24px;padding:40px 34px;width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center;box-shadow:0 32px 80px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.05);color:var(--tx)}
-.login-logo{width:96px;height:96px;border-radius:50%;overflow:hidden;border:3px solid #000;background:var(--sf2);display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:900;color:#000;margin-bottom:20px;position:relative;flex-shrink:0;box-shadow:0 0 0 8px rgba(0,0,0,.06)}
+.login-logo{width:96px;height:96px;border-radius:50%;overflow:hidden;border:3px solid #FAFAFA;background:var(--sf2);display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:900;color:#FAFAFA;margin-bottom:20px;position:relative;flex-shrink:0;box-shadow:0 0 0 8px rgba(255,255,255,.06)}
 .login-logo img{width:100%;height:100%;object-fit:cover;object-position:center top;position:absolute;inset:0;border-radius:50%}
 .login-app-name{font-size:24px;font-weight:900;color:var(--tx);margin-bottom:6px;letter-spacing:-.5px;text-align:center}
 .login-sub{font-size:12px;color:var(--tx2);margin-bottom:30px;text-align:center;font-weight:600}
 .login-field{width:100%;margin-bottom:12px}
 .login-field input{width:100%;padding:14px 16px;background:var(--sf2);border:1.5px solid var(--bd);border-radius:12px;color:var(--tx);font-size:14px;font-family:'Inter',sans-serif;font-weight:500;outline:none;transition:all .2s}
-.login-field input:focus{border-color:#000;background:#FFF}
+.login-field input:focus{border-color:#FAFAFA;background:var(--sf3)}
 .login-field input::placeholder{color:var(--tx3)}
-.login-btn{width:100%;padding:15px;background:#000;color:#FFF;border-radius:12px;font-size:15px;font-weight:800;border:none;cursor:pointer;transition:background .2s;margin-top:6px;font-family:'Inter',sans-serif;letter-spacing:-.2px}
-.login-btn:hover{background:#262626}
+.login-btn{width:100%;padding:15px;background:#FAFAFA;color:#000;border-radius:12px;font-size:15px;font-weight:800;border:none;cursor:pointer;transition:background .2s;margin-top:6px;font-family:'Inter',sans-serif;letter-spacing:-.2px}
+.login-btn:hover{background:#FFF}
 .login-btn:active{transform:scale(.98)}
 .login-err{font-size:12px;color:var(--exp);margin-top:10px;min-height:16px;text-align:center;font-weight:600}
 .login-hint{font-size:11px;color:var(--tx3);margin-top:14px;text-align:center;line-height:1.5}
@@ -441,7 +441,7 @@ input,select{font-family:'Inter',sans-serif}
         <div id="income-cat-breakdown" class="cat-breakdown"></div>
         <div class="tx-toolbar">
           <input type="search" class="tx-search" id="income-search" placeholder="Search income…" oninput="renderIncomeList()">
-          <button onclick="openAddModal('income')" style="padding:8px 14px;background:#000;color:#FFF;border-radius:10px;font-size:12px;font-weight:800;border:none;cursor:pointer">＋ Add</button>
+          <button onclick="openAddModal('income')" style="padding:8px 14px;background:#FAFAFA;color:#000;border-radius:10px;font-size:12px;font-weight:800;border:none;cursor:pointer">＋ Add</button>
         </div>
         <div id="income-list"></div>
       </div>
@@ -517,7 +517,7 @@ input,select{font-family:'Inter',sans-serif}
       <div id="custom-cat-breakdown" class="cat-breakdown"></div>
       <div class="tx-toolbar">
         <input type="search" class="tx-search" id="custom-search" placeholder="Search…" oninput="renderCustomList()">
-        <button id="custom-add-btn" onclick="openAddModal(curPage)" style="padding:8px 14px;background:#000;color:#FFF;border-radius:10px;font-size:12px;font-weight:800;border:none;cursor:pointer">＋ Add</button>
+        <button id="custom-add-btn" onclick="openAddModal(curPage)" style="padding:8px 14px;background:#FAFAFA;color:#000;border-radius:10px;font-size:12px;font-weight:800;border:none;cursor:pointer">＋ Add</button>
       </div>
       <div id="custom-list"></div>
     </div>
@@ -538,7 +538,7 @@ input,select{font-family:'Inter',sans-serif}
         </div>
         <div class="sett-row">
           <div><div class="sett-lbl">Profile Picture</div><div class="sett-desc">Click your avatar to change</div></div>
-          <button onclick="triggerPicUpload()" style="padding:8px 14px;background:#000;color:#FFF;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;border:none;transition:background .15s">📷 Change</button>
+          <button onclick="triggerPicUpload()" style="padding:8px 14px;background:#FAFAFA;color:#000;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;border:none;transition:background .15s">📷 Change</button>
         </div>
       </div>
       <div class="card mb14">
@@ -561,7 +561,7 @@ input,select{font-family:'Inter',sans-serif}
       </div>
       <div class="card mb14">
         <div class="ctitle">Manage Tabs
-          <button onclick="openTabModal()" style="padding:6px 12px;background:#000;color:#FFF;border-radius:8px;font-size:10px;font-weight:800;cursor:pointer;border:none">＋ New Tab</button>
+          <button onclick="openTabModal()" style="padding:6px 12px;background:#FAFAFA;color:#000;border-radius:8px;font-size:10px;font-weight:800;cursor:pointer;border:none">＋ New Tab</button>
         </div>
         <div id="tabs-manage-list"></div>
       </div>
@@ -584,7 +584,7 @@ input,select{font-family:'Inter',sans-serif}
         <div class="ctitle">Backup &amp; Restore</div>
         <div class="sett-row">
           <div><div class="sett-lbl">Export Data</div></div>
-          <button onclick="exportData()" style="padding:8px 14px;background:#000;color:#FFF;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;border:none;transition:background .15s">⬇ Export</button>
+          <button onclick="exportData()" style="padding:8px 14px;background:#FAFAFA;color:#000;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;border:none;transition:background .15s">⬇ Export</button>
         </div>
         <div class="sett-row">
           <div><div class="sett-lbl">Import Data</div></div>
@@ -605,7 +605,7 @@ input,select{font-family:'Inter',sans-serif}
       </div>
       <div class="card">
         <div class="ctitle">Sync</div>
-        <button style="padding:12px 16px;background:var(--sf2);border:1px solid var(--bd);border-radius:12px;color:var(--tx);font-size:12px;font-weight:800;cursor:pointer;width:100%;margin-top:6px;transition:all .15s" onmouseover="this.style.background='#000';this.style.color='#FFF';this.style.borderColor='#000'" onmouseout="this.style.background='var(--sf2)';this.style.color='var(--tx)';this.style.borderColor='var(--bd)'" onclick="pullFromCloud()">☁️ Pull Latest from Cloud</button>
+        <button style="padding:12px 16px;background:var(--sf2);border:1px solid var(--bd);border-radius:12px;color:var(--tx);font-size:12px;font-weight:800;cursor:pointer;width:100%;margin-top:6px;transition:all .15s" onmouseover="this.style.background='#FAFAFA';this.style.color='#000';this.style.borderColor='#FAFAFA'" onmouseout="this.style.background='var(--sf2)';this.style.color='var(--tx)';this.style.borderColor='var(--bd)'" onclick="pullFromCloud()">☁️ Pull Latest from Cloud</button>
       </div>
       <div class="card">
         <div class="ctitle">Danger Zone</div>
@@ -880,7 +880,7 @@ function renderBudgetBlock(elId, key, used, label, isIncome=false){
   const pct=Math.min(Math.round((used/budget)*100),100);
   const remColor=isIncome?(over?'var(--inc)':'var(--tx2)'):(over?'var(--exp)':'var(--inc)');
   const remSub=isIncome?(over?'🎉 target exceeded':'to reach goal'):(over?'⚠️ over budget':'remaining');
-  const barColor=over&&!isIncome?'var(--exp)':isIncome?'var(--inc)':'#000';
+  const barColor=over&&!isIncome?'var(--exp)':isIncome?'var(--inc)':'#FAFAFA';
   el.innerHTML=`<div class="bud-strip">
     <div class="bud-block">
       <div class="bud-lbl">Budget <span onclick="setBudget('${key}','${label}')" style="cursor:pointer;color:var(--tx3);font-weight:500;font-size:9px">✏️</span></div>
@@ -969,7 +969,7 @@ function txRow(t){
   return `<div class="tx-row"><div class="tx-ico ${icoC}">${emoji}</div><div class="tx-body"><div class="tx-cat">${heading}${retBadge}</div>${subHtml}${metaHtml}</div><div class="tx-right"><div class="tx-amt ${amtC}">${sign}${pkr(t.amt)}</div><div class="tx-date-sm">${fmtDate(t.date)}</div></div><div class="tx-acts">${retBtn}<button class="ta ed" onclick="openEditModal('${t.id}')">✏️</button><button class="ta dl" onclick="delTx('${t.id}')">🗑️</button></div></div>`;
 }
 
-function chartOpts(){ return {responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#52525B',font:{family:'Inter',size:10,weight:'600'}}}},scales:{x:{ticks:{color:'#71717A',font:{family:'Inter',size:9,weight:'600'},maxTicksLimit:15},grid:{color:'rgba(0,0,0,.05)'}},y:{beginAtZero:true,ticks:{color:'#71717A',font:{family:'Inter',size:9,weight:'600'}},grid:{color:'rgba(0,0,0,.05)'}}}}; }
+function chartOpts(){ return {responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#A1A1AA',font:{family:'Inter',size:10,weight:'600'}}}},scales:{x:{ticks:{color:'#A1A1AA',font:{family:'Inter',size:9,weight:'600'},maxTicksLimit:15},grid:{color:'rgba(255,255,255,.05)'}},y:{beginAtZero:true,ticks:{color:'#A1A1AA',font:{family:'Inter',size:9,weight:'600'}},grid:{color:'rgba(255,255,255,.05)'}}}}; }
 
 // ── CATEGORY BREAKDOWN (clickable) ──
 function renderCatBreakdown(containerId, tabId, list, colorVar, allCats=false){
@@ -1011,7 +1011,7 @@ function renderMonthlyChart(canvasId, tabId, opts){
   const months=[];
   for(let i=5;i>=0;i--){ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()-i); months.push({pfx:d.toISOString().slice(0,7),label:d.toLocaleDateString('en',{month:'short',year:'2-digit'})}); }
   const datasets=opts.datasets.map(ds=>({...ds,data:months.map(m=>txs.filter(ds.filter(m.pfx)).reduce((s,t)=>s+t.amt,0))}));
-  charts[canvasId]=new Chart(ctx,{type:'bar',data:{labels:months.map(m=>m.label),datasets},options:{...chartOpts(),scales:{x:{ticks:{color:'#71717A',font:{family:'Inter',size:9,weight:'600'}},grid:{color:'rgba(0,0,0,.05)'}},y:{beginAtZero:true,ticks:{color:'#71717A',font:{family:'Inter',size:9,weight:'600'}},grid:{color:'rgba(0,0,0,.05)'}}}}});
+  charts[canvasId]=new Chart(ctx,{type:'bar',data:{labels:months.map(m=>m.label),datasets},options:{...chartOpts(),scales:{x:{ticks:{color:'#A1A1AA',font:{family:'Inter',size:9,weight:'600'}},grid:{color:'rgba(255,255,255,.05)'}},y:{beginAtZero:true,ticks:{color:'#A1A1AA',font:{family:'Inter',size:9,weight:'600'}},grid:{color:'rgba(255,255,255,.05)'}}}}});
 }
 
 // ── HOME ──
@@ -1032,12 +1032,12 @@ function renderHome(){
   const [y,m]=pfx.split('-').map(Number); const days=new Date(y,m,0).getDate();
   const labels=[],incD=[],expD=[];
   for(let i=1;i<=days;i++){ const ds=`${y}-${String(m).padStart(2,'0')}-${String(i).padStart(2,'0')}`; labels.push(i); incD.push(txs.filter(t=>t.type==='income'&&t.date===ds).reduce((s,t)=>s+t.amt,0)); expD.push(txs.filter(t=>t.type==='expense'&&t.date===ds).reduce((s,t)=>s+t.amt,0)); }
-  charts.home=new Chart(ctx1,{type:'bar',data:{labels,datasets:[{label:'Income',data:incD,backgroundColor:'rgba(21,128,61,.7)',borderColor:'#15803D',borderWidth:1.5,borderRadius:4,barPercentage:.7,categoryPercentage:.8},{label:'Expense',data:expD,backgroundColor:'rgba(24,24,27,.85)',borderColor:'#000',borderWidth:1.5,borderRadius:4,barPercentage:.7,categoryPercentage:.8}]},options:chartOpts()});
+  charts.home=new Chart(ctx1,{type:'bar',data:{labels,datasets:[{label:'Income',data:incD,backgroundColor:'rgba(34,197,94,.7)',borderColor:'#22C55E',borderWidth:1.5,borderRadius:4,barPercentage:.7,categoryPercentage:.8},{label:'Expense',data:expD,backgroundColor:'rgba(239,68,68,.7)',borderColor:'#EF4444',borderWidth:1.5,borderRadius:4,barPercentage:.7,categoryPercentage:.8}]},options:chartOpts()});
   // donut
   const ctx2=document.getElementById('c-donut'); if(charts.donut) charts.donut.destroy();
   const map={}; txs.filter(t=>t.type==='expense'&&t.date.startsWith(pfx)).forEach(t=>{map[t.cat]=(map[t.cat]||0)+t.amt;});
   const lbls=Object.keys(map),vals=Object.values(map),CC=['#00C4D4','#00D68F','#FF4B6E','#FFB300','#8B5CF6','#3B82F6','#F97316','#EC4899','#84CC16','#34D399'];
-  if(lbls.length) charts.donut=new Chart(ctx2,{type:'doughnut',data:{labels:lbls,datasets:[{data:vals,backgroundColor:CC.slice(0,lbls.length),borderWidth:3,borderColor:'#FFFFFF',hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#52525B',font:{family:'Inter',size:10,weight:'600'},padding:8,boxWidth:10}}}}});
+  if(lbls.length) charts.donut=new Chart(ctx2,{type:'doughnut',data:{labels:lbls,datasets:[{data:vals,backgroundColor:CC.slice(0,lbls.length),borderWidth:3,borderColor:'#0F0F10',hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#A1A1AA',font:{family:'Inter',size:10,weight:'600'},padding:8,boxWidth:10}}}}});
   // home budget
   const homeSpent=txs.filter(t=>t.tab==='home'&&t.type==='expense'&&t.date.startsWith(pfx)).reduce((s,t)=>s+t.amt,0);
   renderBudgetBlock('bud-home','home',homeSpent,'Home');
