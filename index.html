@@ -563,6 +563,10 @@ input,select{font-family:'Inter',sans-serif}
         </div>
       </div>
       <div class="card">
+        <div class="ctitle">Sync</div>
+        <button class="danger-btn" style="background:rgba(0,196,212,.08);border-color:rgba(0,196,212,.2);color:var(--cyan)" onclick="pullFromCloud()">☁️ Pull Latest from Cloud</button>
+      </div>
+      <div class="card">
         <div class="ctitle">Danger Zone</div>
         <button class="danger-btn" onclick="resetAll()">🗑️ Delete All Data (Cannot be undone)</button>
       </div>
@@ -773,7 +777,7 @@ function setTabLock(id, locked){
   if(!sett.tabLocks) sett.tabLocks={};
   sett.tabLocks[id]=locked;
   if(!locked){ if(id==='income') lockIncome(); else unlockedTabs.delete(id); }
-  save(); buildNav(); renderTabsManage();
+  save(); pushConfigNow('settings',sett); buildNav(); renderTabsManage();
   toast(locked?'🔒 Tab locked':'🔓 Tab unlocked');
 }
 
@@ -861,7 +865,7 @@ function setBudget(key, label){
   if(val===null) return;
   const num=parseFloat(val);
   if(isNaN(num)||num<0){ toast('⚠️ Invalid amount'); return; }
-  sett.budgets[key]=num; save(); refresh(); toast('✅ Budget saved!');
+  sett.budgets[key]=num; save(); pushConfigNow('settings',sett); refresh(); toast('✅ Budget saved!');
 }
 
 // ── GENERIC TAB LOCK ──
@@ -1161,16 +1165,16 @@ function renderTabsManage(){
 }
 function openTabModal(id){ editTabId=id||null; const tab=id?getAllTabs().find(t=>t.id===id):null; document.getElementById('tab-modal-title').textContent=id?'Edit Tab':'New Tab'; document.getElementById('tab-icon').value=tab?tab.icon:''; document.getElementById('tab-name').value=tab?tab.name:''; document.getElementById('tab-modal').style.display='flex'; }
 function closeTabModal(){ document.getElementById('tab-modal').style.display='none'; editTabId=null; }
-function saveTab(){ const icon=document.getElementById('tab-icon').value.trim()||'📁',name=document.getElementById('tab-name').value.trim(); if(!name) return toast('⚠️ Enter a tab name'); if(editTabId){ const fi=FIXED_TABS.findIndex(t=>t.id===editTabId); if(fi!==-1){ FIXED_TABS[fi].name=name; FIXED_TABS[fi].icon=icon; } const ci=sett.customTabs.findIndex(t=>t.id===editTabId); if(ci!==-1){ sett.customTabs[ci].name=name; sett.customTabs[ci].icon=icon; } } else { const id=name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')+'_'+Date.now(); sett.customTabs.push({id,name,icon}); } save(); closeTabModal(); buildNav(); renderTabsManage(); loadSettings(); toast(editTabId?'✅ Tab updated!':'✅ Tab created!'); }
-function deleteTab(id){ const count=txs.filter(t=>t.tab===id).length; if(!confirm(count?`This tab has ${count} entries. They will also be deleted. Continue?`:'Delete this tab?')) return; txs=txs.filter(t=>t.tab!==id); sett.customTabs=sett.customTabs.filter(t=>t.id!==id); save(); buildNav(); renderTabsManage(); loadSettings(); if(curPage===id) go('home'); toast('🗑️ Tab deleted'); }
+function saveTab(){ const icon=document.getElementById('tab-icon').value.trim()||'📁',name=document.getElementById('tab-name').value.trim(); if(!name) return toast('⚠️ Enter a tab name'); if(editTabId){ const fi=FIXED_TABS.findIndex(t=>t.id===editTabId); if(fi!==-1){ FIXED_TABS[fi].name=name; FIXED_TABS[fi].icon=icon; } const ci=sett.customTabs.findIndex(t=>t.id===editTabId); if(ci!==-1){ sett.customTabs[ci].name=name; sett.customTabs[ci].icon=icon; } } else { const id=name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')+'_'+Date.now(); sett.customTabs.push({id,name,icon}); } save(); pushConfigNow('settings',sett); closeTabModal(); buildNav(); renderTabsManage(); loadSettings(); toast(editTabId?'✅ Tab updated!':'✅ Tab created!'); }
+function deleteTab(id){ const count=txs.filter(t=>t.tab===id).length; if(!confirm(count?`This tab has ${count} entries. They will also be deleted. Continue?`:'Delete this tab?')) return; txs=txs.filter(t=>t.tab!==id); sett.customTabs=sett.customTabs.filter(t=>t.id!==id); save(); pushConfigNow('settings',sett); buildNav(); renderTabsManage(); loadSettings(); if(curPage===id) go('home'); toast('🗑️ Tab deleted'); }
 
 // ── CATEGORY MANAGEMENT ──
 let editCatIdx=null,editCatTab=null;
 function renderCatManage(){ const el=document.getElementById('cats-manage-list'); if(!el) return; const tabId=document.getElementById('cat-tab-select')?.value||'expenses'; const cats=getCats(tabId); if(!cats.length){ el.innerHTML=`<div style="color:var(--tx2);font-size:12px;padding:8px 0">No categories yet</div>`; return; } el.innerHTML=cats.map((c,i)=>`<div class="manage-row"><div class="manage-ico">${c.e}</div><div class="manage-name" style="flex:1">${c.n}</div><div class="manage-acts"><button class="mbtn edit" onclick="openCatModal(${i})">✏️</button><button class="mbtn del" onclick="deleteCat(${i})">🗑️</button></div></div>`).join(''); }
 function openCatModal(idx){ editCatIdx=(idx===undefined||idx===null)?null:idx; editCatTab=document.getElementById('cat-tab-select')?.value||'expenses'; const cat=(editCatIdx!==null)?getCats(editCatTab)[editCatIdx]:null; document.getElementById('cat-modal-title').textContent=cat?'Edit Category':'New Category'; document.getElementById('cat-icon').value=cat?cat.e:''; document.getElementById('cat-name').value=cat?cat.n:''; document.getElementById('cat-modal').style.display='flex'; }
 function closeCatModal(){ document.getElementById('cat-modal').style.display='none'; editCatIdx=null; editCatTab=null; }
-function saveCat(){ const icon=document.getElementById('cat-icon').value.trim()||'💡',name=document.getElementById('cat-name').value.trim(); if(!name) return toast('⚠️ Enter a category name'); const tabId=editCatTab||document.getElementById('cat-tab-select')?.value||'expenses'; if(!sett.userCats[tabId]||!sett.userCats[tabId].length) sett.userCats[tabId]=[...(DEFAULT_CATS[tabId]||[])]; if(editCatIdx!==null&&editCatIdx>=0) sett.userCats[tabId][editCatIdx]={e:icon,n:name}; else sett.userCats[tabId].push({e:icon,n:name}); save(); closeCatModal(); renderCatManage(); toast(editCatIdx!==null?'✅ Category updated!':'✅ Category added!'); }
-function deleteCat(idx){ const tabId=document.getElementById('cat-tab-select')?.value||'expenses'; const cats=getCats(tabId); if(!confirm(`Delete "${cats[idx].n}"?`)) return; if(!sett.userCats[tabId]||!sett.userCats[tabId].length) sett.userCats[tabId]=[...(DEFAULT_CATS[tabId]||[])]; sett.userCats[tabId].splice(idx,1); save(); renderCatManage(); toast('🗑️ Category removed'); }
+function saveCat(){ const icon=document.getElementById('cat-icon').value.trim()||'💡',name=document.getElementById('cat-name').value.trim(); if(!name) return toast('⚠️ Enter a category name'); const tabId=editCatTab||document.getElementById('cat-tab-select')?.value||'expenses'; if(!sett.userCats[tabId]||!sett.userCats[tabId].length) sett.userCats[tabId]=[...(DEFAULT_CATS[tabId]||[])]; if(editCatIdx!==null&&editCatIdx>=0) sett.userCats[tabId][editCatIdx]={e:icon,n:name}; else sett.userCats[tabId].push({e:icon,n:name}); save(); pushConfigNow('settings',sett); closeCatModal(); renderCatManage(); toast(editCatIdx!==null?'✅ Category updated!':'✅ Category added!'); }
+function deleteCat(idx){ const tabId=document.getElementById('cat-tab-select')?.value||'expenses'; const cats=getCats(tabId); if(!confirm(`Delete "${cats[idx].n}"?`)) return; if(!sett.userCats[tabId]||!sett.userCats[tabId].length) sett.userCats[tabId]=[...(DEFAULT_CATS[tabId]||[])]; sett.userCats[tabId].splice(idx,1); save(); pushConfigNow('settings',sett); renderCatManage(); toast('🗑️ Category removed'); }
 
 // ── ADD / EDIT MODAL ──
 let mTab='expenses',mType='expense',editId=null;
@@ -1241,15 +1245,37 @@ async function dbWrite(tx){ if(!sb||!sbReady) return; showBadge('syncing'); try{
 async function dbDelete(id){ if(!sb||!sbReady) return; showBadge('syncing'); try{ const {error}=await sb.from('transactions').delete().eq('id',String(id)); if(error) throw error; showBadge('synced'); }catch(e){ console.error(e); showBadge('error'); } }
 
 // ── CONFIG SYNC (settings, profile pic, deleted ids) ──
-const cfgTimers={};
+const cfgTimers={}, cfgPending={};
+async function _doPushConfig(key, value){
+  if(!sb||!sbReady) return;
+  showBadge('syncing');
+  try{ const {error}=await sb.from('config').upsert({key,value}); if(error) throw error; showBadge('synced'); }
+  catch(e){ console.error('pushConfig',key,e); showBadge('error'); toast('🔴 Sync failed: '+(e.message||'config')); }
+}
 function pushConfig(key, value){
   if(!sb||!sbReady) return;
+  cfgPending[key]=value;
   clearTimeout(cfgTimers[key]);
-  cfgTimers[key]=setTimeout(async()=>{
-    showBadge('syncing');
-    try{ const {error}=await sb.from('config').upsert({key,value}); if(error) throw error; showBadge('synced'); }
-    catch(e){ console.error('pushConfig',key,e); showBadge('error'); }
-  }, 300);
+  cfgTimers[key]=setTimeout(()=>{ const v=cfgPending[key]; delete cfgPending[key]; delete cfgTimers[key]; _doPushConfig(key,v); }, 300);
+}
+function pushConfigNow(key, value){
+  // Immediate push (skip debounce) — for structural changes like custom tabs, categories, budgets
+  clearTimeout(cfgTimers[key]); delete cfgTimers[key]; delete cfgPending[key];
+  return _doPushConfig(key, value);
+}
+function flushAllConfig(){
+  // Fire any pending debounced pushes immediately (synchronous best-effort before unload)
+  Object.keys(cfgPending).forEach(k=>{ const v=cfgPending[k]; clearTimeout(cfgTimers[k]); delete cfgTimers[k]; delete cfgPending[k]; if(sb&&sbReady) sb.from('config').upsert({key:k,value:v}); });
+}
+window.addEventListener('beforeunload', flushAllConfig);
+async function pullFromCloud(){
+  if(!sb){ toast('⚠️ Supabase not ready'); return; }
+  showBadge('syncing');
+  await dbLoadConfig();
+  const {data}=await sb.from('transactions').select('*');
+  if(data){ txs=data.map(fromRow).filter(t=>!deletedIds.has(t.id)); localStorage.setItem('rfq_txs',JSON.stringify(txs)); }
+  applyPic(); document.getElementById('sb-name-lbl').textContent=sett.name||'Rizwan'; buildNav(); refresh();
+  showBadge('synced'); toast('✅ Pulled latest from cloud');
 }
 async function dbLoadConfig(){
   if(!sb) return false;
