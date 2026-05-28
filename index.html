@@ -710,6 +710,7 @@ function doLogout(){
 function save(){
   localStorage.setItem('rfq_txs',JSON.stringify(txs));
   localStorage.setItem('rfq_set',JSON.stringify(sett));
+  pushConfig('settings', sett);
 }
 function getCats(tab){
   if(sett.userCats[tab]&&sett.userCats[tab].length) return sett.userCats[tab];
@@ -770,7 +771,7 @@ function confetti(){
 function triggerPicUpload(){ document.getElementById('pic-input').click(); }
 function handlePicUpload(e){
   const file=e.target.files[0]; if(!file) return;
-  const r=new FileReader(); r.onload=ev=>{ profilePic=ev.target.result; localStorage.setItem('rfq_pic',profilePic); applyPic(); toast('✅ Profile picture updated!'); }; r.readAsDataURL(file); e.target.value='';
+  const r=new FileReader(); r.onload=ev=>{ profilePic=ev.target.result; localStorage.setItem('rfq_pic',profilePic); applyPic(); pushConfig('profile_pic', profilePic); toast('✅ Profile picture updated!'); }; r.readAsDataURL(file); e.target.value='';
 }
 function applyPic(){
   [['pic-img','pic-init'],['pic-img2','pic-init2']].forEach(([iid,initId])=>{ const img=document.getElementById(iid),init=document.getElementById(initId); if(profilePic){ img.src=profilePic; img.style.display='block'; if(init) init.style.display='none'; } else{ img.style.display='none'; if(init) init.style.display='block'; } });
@@ -1107,7 +1108,7 @@ function loadSettings(){
 function saveSett(){ sett.name=document.getElementById('s-name').value.trim()||'Rizwan'; sett.pin=document.getElementById('s-pin').value.trim(); sett.loginPass=document.getElementById('s-loginpass')?.value.trim()||''; sett.limit=parseFloat(document.getElementById('s-lim').value)||1000; save(); document.getElementById('sb-name-lbl').textContent=sett.name; applyLoginPfp(); }
 function exportData(){ const d={txs,sett,exportedAt:new Date().toISOString(),app:'RizwanFinance',v:'2.0'}; const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'})); a.download=`rizwan-finance-${todayStr()}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); toast('✅ Exported!'); }
 function importData(e){ const file=e.target.files[0]; if(!file) return; const r=new FileReader(); r.onload=ev=>{ try{ const d=JSON.parse(ev.target.result); if(!Array.isArray(d.txs)) throw 0; if(!confirm(`Import ${d.txs.length} entries? Replaces all current data.`)) return; txs=d.txs; if(d.sett) sett={...sett,...d.sett}; save(); toast('✅ Imported! Reloading…'); setTimeout(()=>location.reload(),1000); }catch{ toast('⚠️ Invalid file'); } }; r.readAsText(file); e.target.value=''; }
-async function resetAll(){ if(!confirm('Delete ALL data permanently?')) return; txs.forEach(t=>deletedIds.add(String(t.id))); localStorage.setItem('rfq_del',JSON.stringify([...deletedIds])); txs=[]; save(); if(sb&&sbReady){ try{ await sb.from('transactions').delete().neq('id','__none__'); }catch(e){ console.error(e); } } location.reload(); }
+async function resetAll(){ if(!confirm('Delete ALL data permanently?')) return; txs.forEach(t=>deletedIds.add(String(t.id))); localStorage.setItem('rfq_del',JSON.stringify([...deletedIds])); txs=[]; save(); if(sb&&sbReady){ try{ await sb.from('transactions').delete().neq('id','__none__'); await sb.from('config').upsert({key:'deleted_ids',value:[...deletedIds]}); }catch(e){ console.error(e); } } location.reload(); }
 
 // ── TAB MANAGEMENT ──
 let editTabId=null;
@@ -1142,7 +1143,7 @@ function setMType(type){ mType=type; document.querySelectorAll('.topt').forEach(
 function fillCatOpts(cats){ document.getElementById('m-cat').innerHTML='<option value="">Select…</option>'+cats.map(c=>`<option value="${c.n}">${c.e} ${c.n}</option>`).join(''); }
 function closeModal(){ document.getElementById('modal').style.display='none'; editId=null; }
 function submitEntry(){ const amt=parseFloat(document.getElementById('m-amt').value),cat=document.getElementById('m-cat').value,desc=document.getElementById('m-desc').value.trim(),date=document.getElementById('m-date').value,time=document.getElementById('m-time').value,person=document.getElementById('m-person').value.trim(); if(!amt||amt<=0) return toast('⚠️ Enter an amount'); if(!date) return toast('⚠️ Pick a date'); if(mTab!=='lent'&&!cat) return toast('⚠️ Select a category'); if(mTab==='lent'&&!person) return toast('⚠️ Enter person name'); const type=mTab==='lent'?mType:mTab==='savings'?'savings':mType; if(editId){ const i=txs.findIndex(x=>String(x.id)===String(editId)); if(i!==-1){ txs[i]={...txs[i],type,amt,cat:cat||'',desc,date,time,person:person||''}; save(); if(sbReady) dbWrite(txs[i]); toast('✅ Updated!'); } } else { const tx={id:Date.now().toString(),tab:mTab,type,amt,cat:cat||'',desc,date,time,person:person||'',returned:false,returnedDate:''}; txs.push(tx); save(); if(sbReady) dbWrite(tx); if(type==='income') confetti(); toast(type==='income'?'🎉 Income added!':type==='savings'?'🏦 Saved!':'✅ Saved!'); } closeModal(); refresh(); }
-function delTx(id){ if(!confirm('Delete this entry?')) return; const sid=String(id); deletedIds.add(sid); localStorage.setItem('rfq_del',JSON.stringify([...deletedIds])); txs=txs.filter(t=>String(t.id)!==sid); save(); if(sbReady) dbDelete(sid); refresh(); toast('🗑️ Deleted!'); }
+function delTx(id){ if(!confirm('Delete this entry?')) return; const sid=String(id); deletedIds.add(sid); localStorage.setItem('rfq_del',JSON.stringify([...deletedIds])); pushConfig('deleted_ids',[...deletedIds]); txs=txs.filter(t=>String(t.id)!==sid); save(); if(sbReady) dbDelete(sid); refresh(); toast('🗑️ Deleted!'); }
 
 // ── NAVIGATION ──
 const TITLES={home:'Home',income:'Income',expenses:'Expenses',business:'Business',lent:'Lent',savings:'Savings',settings:'Settings'};
@@ -1196,11 +1197,49 @@ function refresh(){
 let sb=null,sbReady=false,sbChannel=null;
 function showBadge(state){ const b=document.getElementById('sync-badge'); if(!b) return; const map={local:{cls:'local',txt:'⚪ Local'},syncing:{cls:'syncing',txt:'🟡 Syncing…'},synced:{cls:'synced',txt:'🟢 Synced'},error:{cls:'error',txt:'🔴 Error'}}; const s=map[state]||map.local; b.className='sync-badge '+s.cls; b.textContent=s.txt; }
 function updateSbUI(c){ const lbl=document.getElementById('sb-conn-label'),dot=document.getElementById('sb-dot'); if(!lbl) return; if(c){ lbl.textContent='🟢 Connected — Real-time sync active'; if(dot) dot.style.background='var(--inc)'; } else { lbl.textContent='Connecting…'; if(dot) dot.style.background='var(--tx3)'; } }
-async function initDB(){ if(typeof supabase==='undefined'){ showBadge('error'); toast('🔴 Supabase library failed to load'); return; } try{ sb=supabase.createClient(SB_URL,SB_KEY); showBadge('syncing'); const {data,error}=await sb.from('transactions').select('*'); if(error) throw error; if(data){ txs=data.map(fromRow).filter(t=>!deletedIds.has(t.id)); localStorage.setItem('rfq_txs',JSON.stringify(txs)); } sbReady=true; refresh(); showBadge('synced'); updateSbUI(true); if(sbChannel) sb.removeChannel(sbChannel); sbChannel=sb.channel('rt').on('postgres_changes',{event:'*',schema:'public',table:'transactions'},async()=>{ const {data:d,error:re}=await sb.from('transactions').select('*'); if(re){ console.error('Realtime fetch error:',re); showBadge('error'); return; } if(d){ txs=d.map(fromRow).filter(t=>!deletedIds.has(t.id)); localStorage.setItem('rfq_txs',JSON.stringify(txs)); refresh(); showBadge('synced'); } }).subscribe(s=>{ console.log('Realtime status:',s); if(s==='SUBSCRIBED') showBadge('synced'); if(s==='CHANNEL_ERROR'||s==='TIMED_OUT') showBadge('error'); if(s==='CLOSED') updateSbUI(false); }); }catch(e){ console.error('initDB error:',e); sbReady=false; showBadge('error'); toast('🔴 Supabase: '+(e.message||String(e))); } }
+async function initDB(){ if(typeof supabase==='undefined'){ showBadge('error'); toast('🔴 Supabase library failed to load'); return; } try{ sb=supabase.createClient(SB_URL,SB_KEY); showBadge('syncing'); await dbLoadConfig(); applyPic(); document.getElementById('sb-name-lbl').textContent=sett.name||'Rizwan'; buildNav(); const {data,error}=await sb.from('transactions').select('*'); if(error) throw error; if(data){ txs=data.map(fromRow).filter(t=>!deletedIds.has(t.id)); localStorage.setItem('rfq_txs',JSON.stringify(txs)); } sbReady=true; refresh(); showBadge('synced'); updateSbUI(true); if(sbChannel) sb.removeChannel(sbChannel); sbChannel=sb.channel('rt').on('postgres_changes',{event:'*',schema:'public',table:'transactions'},async()=>{ const {data:d,error:re}=await sb.from('transactions').select('*'); if(re){ console.error('Realtime fetch error:',re); showBadge('error'); return; } if(d){ txs=d.map(fromRow).filter(t=>!deletedIds.has(t.id)); localStorage.setItem('rfq_txs',JSON.stringify(txs)); refresh(); showBadge('synced'); } }).on('postgres_changes',{event:'*',schema:'public',table:'config'},async()=>{ await dbLoadConfig(); applyPic(); document.getElementById('sb-name-lbl').textContent=sett.name||'Rizwan'; buildNav(); refresh(); showBadge('synced'); }).subscribe(s=>{ console.log('Realtime status:',s); if(s==='SUBSCRIBED') showBadge('synced'); if(s==='CHANNEL_ERROR'||s==='TIMED_OUT') showBadge('error'); if(s==='CLOSED') updateSbUI(false); }); }catch(e){ console.error('initDB error:',e); sbReady=false; showBadge('error'); toast('🔴 Supabase: '+(e.message||String(e))); } }
 function toRow(tx){ const r={...tx,returned_date:tx.returnedDate||''}; delete r.returnedDate; return r; }
 function fromRow(r){ return {...r,id:String(r.id),returnedDate:r.returned_date||''}; }
 async function dbWrite(tx){ if(!sb||!sbReady) return; showBadge('syncing'); try{ const {error}=await sb.from('transactions').upsert(toRow(tx)); if(error) throw error; showBadge('synced'); }catch(e){ console.error(e); showBadge('error'); } }
 async function dbDelete(id){ if(!sb||!sbReady) return; showBadge('syncing'); try{ const {error}=await sb.from('transactions').delete().eq('id',String(id)); if(error) throw error; showBadge('synced'); }catch(e){ console.error(e); showBadge('error'); } }
+
+// ── CONFIG SYNC (settings, profile pic, deleted ids) ──
+const cfgTimers={};
+function pushConfig(key, value){
+  if(!sb||!sbReady) return;
+  clearTimeout(cfgTimers[key]);
+  cfgTimers[key]=setTimeout(async()=>{
+    showBadge('syncing');
+    try{ const {error}=await sb.from('config').upsert({key,value}); if(error) throw error; showBadge('synced'); }
+    catch(e){ console.error('pushConfig',key,e); showBadge('error'); }
+  }, 300);
+}
+async function dbLoadConfig(){
+  if(!sb) return false;
+  try{
+    const {data,error}=await sb.from('config').select('*');
+    if(error) throw error;
+    if(!data) return false;
+    const map={}; data.forEach(r=>map[r.key]=r.value);
+    if(map.settings&&typeof map.settings==='object'){
+      sett={...sett,...map.settings};
+      if(!sett.userCats) sett.userCats={};
+      if(!sett.customTabs) sett.customTabs=[];
+      if(!sett.tabLocks) sett.tabLocks={};
+      if(!sett.budgets) sett.budgets={};
+      localStorage.setItem('rfq_set',JSON.stringify(sett));
+    }
+    if(typeof map.profile_pic==='string'&&map.profile_pic){
+      profilePic=map.profile_pic;
+      localStorage.setItem('rfq_pic',profilePic);
+    }
+    if(Array.isArray(map.deleted_ids)){
+      map.deleted_ids.forEach(id=>deletedIds.add(String(id)));
+      localStorage.setItem('rfq_del',JSON.stringify([...deletedIds]));
+    }
+    return true;
+  }catch(e){ console.error('dbLoadConfig',e); return false; }
+}
 
 // ── INIT ──
 function init(){
