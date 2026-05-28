@@ -217,6 +217,17 @@ input,select{font-family:'Inter',sans-serif}
 }
 @media(max-width:480px){ .g4{grid-template-columns:1fr 1fr} }
 
+/* BUDGET BLOCKS */
+.bud-strip{display:flex;gap:8px;margin-bottom:14px}
+.bud-block{flex:1;background:var(--sf2);border:1px solid var(--bd);border-radius:10px;padding:11px 13px}
+.bud-lbl{font-size:9px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px;display:flex;align-items:center;justify-content:space-between}
+.bud-val{font-size:16px;font-weight:800;letter-spacing:-.4px}
+.bud-sub{font-size:10px;color:var(--tx2);margin-top:2px}
+.bud-bar{height:3px;background:var(--bd2);border-radius:2px;margin-top:8px;overflow:hidden}
+.bud-fill{height:100%;border-radius:2px;transition:width .6s}
+.bud-set-btn{padding:5px 13px;background:var(--sf2);border:1px solid var(--bd2);border-radius:8px;color:var(--tx2);font-size:11px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:14px}
+.bud-set-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+
 /* LOGIN SCREEN */
 .login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
 .login-card{background:var(--sf);border:1px solid var(--bd);border-radius:20px;padding:38px 32px;width:100%;max-width:380px;display:flex;flex-direction:column;align-items:center;box-shadow:0 24px 60px rgba(0,0,0,.55)}
@@ -308,6 +319,7 @@ input,select{font-family:'Inter',sans-serif}
   <!-- HOME -->
   <div id="pg-home" class="page on">
     <div class="g4" id="home-stats"></div>
+    <div id="bud-home"></div>
     <div class="g2">
       <div class="card mb14">
         <div class="ctitle">Monthly Overview <span id="home-mo-lbl" style="font-weight:400;font-size:10px;color:var(--tx2)"></span></div>
@@ -348,6 +360,7 @@ input,select{font-family:'Inter',sans-serif}
     </div>
     <div id="income-body" style="display:none">
       <div class="g4" id="income-stats"></div>
+      <div id="bud-yt"></div>
       <div class="card mb14">
         <div class="ctitle">Income by Source</div>
         <div id="income-cat-breakdown" class="cat-breakdown"></div>
@@ -367,6 +380,7 @@ input,select{font-family:'Inter',sans-serif}
   <!-- EXPENSES -->
   <div id="pg-expenses" class="page">
     <div class="g4" id="exp-stats"></div>
+    <div id="bud-exp"></div>
     <div class="card mb14">
       <div class="ctitle">Expenses by Category</div>
       <div id="exp-cat-breakdown" class="cat-breakdown"></div>
@@ -631,10 +645,11 @@ const DEFAULT_CATS={
 
 // ── DATA ──
 let txs  = JSON.parse(localStorage.getItem('rfq_txs')||'[]');
-let sett = {name:'Rizwan',limit:1000,pin:'',userCats:{},customTabs:[],tabLocks:{},...JSON.parse(localStorage.getItem('rfq_set')||'{}')};
+let sett = {name:'Rizwan',limit:1000,pin:'',userCats:{},customTabs:[],tabLocks:{},budgets:{},...JSON.parse(localStorage.getItem('rfq_set')||'{}')};
 if(!sett.userCats)   sett.userCats={};
 if(!sett.customTabs) sett.customTabs=[];
 if(!sett.tabLocks)   sett.tabLocks={};
+if(!sett.budgets)    sett.budgets={};
 let profilePic=localStorage.getItem('rfq_pic')||'';
 
 // category filter state: { tabId: catName|null }
@@ -767,6 +782,48 @@ function buildNav(){
   document.getElementById('bottom-nav').innerHTML=tabs.map(t=>`<button class="bni ${curPage===t.id?'on':''}" onclick="go('${t.id}')"><span class="bni-ico">${t.icon}</span>${t.name.length>6?t.name.slice(0,6)+'…':t.name}</button>`).join('');
 }
 
+// ── BUDGETS ──
+function renderBudgetBlock(elId, key, used, label, isIncome=false){
+  const el=document.getElementById(elId); if(!el) return;
+  const budget=sett.budgets[key]||0;
+  if(!budget){
+    el.innerHTML=`<button class="bud-set-btn" onclick="setBudget('${key}','${label}')">＋ Set ${label} Budget</button>`;
+    return;
+  }
+  const remaining=budget-used;
+  const over=remaining<0;
+  const pct=Math.min(Math.round((used/budget)*100),100);
+  const remColor=isIncome?(over?'var(--inc)':'var(--tx2)'):(over?'var(--exp)':'var(--inc)');
+  const remSub=isIncome?(over?'🎉 target exceeded':'to reach goal'):(over?'⚠️ over budget':'remaining');
+  const barColor=over&&!isIncome?'var(--exp)':isIncome?'var(--inc)':'var(--cyan)';
+  el.innerHTML=`<div class="bud-strip">
+    <div class="bud-block">
+      <div class="bud-lbl">Budget <span onclick="setBudget('${key}','${label}')" style="cursor:pointer;color:var(--tx3);font-weight:500;font-size:9px">✏️</span></div>
+      <div class="bud-val" style="color:var(--cyan)">${pkr(budget)}</div>
+      <div class="bud-sub">${new Date().toLocaleDateString('en',{month:'short',year:'2-digit'})}</div>
+      <div class="bud-bar"><div class="bud-fill" style="width:${pct}%;background:${barColor}"></div></div>
+    </div>
+    <div class="bud-block">
+      <div class="bud-lbl">${isIncome?'Earned':'Spent'}</div>
+      <div class="bud-val" style="color:${isIncome?'var(--inc)':'var(--exp)'}">${pkr(used)}</div>
+      <div class="bud-sub">${pct}% of budget</div>
+    </div>
+    <div class="bud-block">
+      <div class="bud-lbl">Remaining</div>
+      <div class="bud-val" style="color:${remColor}">${over?'-':''}${pkr(Math.abs(remaining))}</div>
+      <div class="bud-sub">${remSub}</div>
+    </div>
+  </div>`;
+}
+function setBudget(key, label){
+  const cur=sett.budgets[key]||'';
+  const val=prompt(`Monthly budget for ${label} (PKR):`, cur);
+  if(val===null) return;
+  const num=parseFloat(val);
+  if(isNaN(num)||num<0){ toast('⚠️ Invalid amount'); return; }
+  sett.budgets[key]=num; save(); refresh(); toast('✅ Budget saved!');
+}
+
 // ── GENERIC TAB LOCK ──
 let unlockedTabs=new Set(), tabLockFor=null, tabPinBuf2='';
 function buildTabPinPad(){
@@ -892,6 +949,9 @@ function renderHome(){
   const map={}; txs.filter(t=>t.type==='expense'&&t.date.startsWith(pfx)).forEach(t=>{map[t.cat]=(map[t.cat]||0)+t.amt;});
   const lbls=Object.keys(map),vals=Object.values(map),CC=['#00C4D4','#00D68F','#FF4B6E','#FFB300','#8B5CF6','#3B82F6','#F97316','#EC4899','#84CC16','#34D399'];
   if(lbls.length) charts.donut=new Chart(ctx2,{type:'doughnut',data:{labels:lbls,datasets:[{data:vals,backgroundColor:CC.slice(0,lbls.length),borderWidth:3,borderColor:'#080F1E',hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#7A9CC0',font:{family:'Inter',size:10},padding:8,boxWidth:10}}}}});
+  // home budget
+  const homeSpent=txs.filter(t=>t.tab==='home'&&t.type==='expense'&&t.date.startsWith(pfx)).reduce((s,t)=>s+t.amt,0);
+  renderBudgetBlock('bud-home','home',homeSpent,'Home');
   // home cat breakdown + list
   const homeAll=txs.filter(t=>t.tab==='home');
   renderCatBreakdown('home-cat-breakdown','home',homeAll,'var(--exp)');
@@ -917,6 +977,8 @@ function renderIncomeContent(){
     <div class="stat-card"><div class="sc-top"><div class="sc-label">All Time</div><div class="sc-ico">📊</div></div><div class="sc-val i">${pkr(total)}</div><div class="sc-sub">total income</div></div>
     <div class="stat-card"><div class="sc-top"><div class="sc-label">Avg / Month</div><div class="sc-ico">📈</div></div><div class="sc-val p">${pkr(total/months)}</div><div class="sc-sub">average</div></div>
     <div class="stat-card"><div class="sc-top"><div class="sc-label">Entries</div><div class="sc-ico">📋</div></div><div class="sc-val p">${list.length}</div><div class="sc-sub">records</div></div>`;
+  const ytEarned=txs.filter(t=>t.cat==='Youtube'&&t.type==='income'&&t.date.startsWith(pfx)).reduce((s,t)=>s+t.amt,0);
+  renderBudgetBlock('bud-yt','youtube',ytEarned,'Youtube',true);
   renderCatBreakdown('income-cat-breakdown','income',list,'var(--inc)',true);
   renderIncomeList();
   renderMonthlyChart('c-income-monthly','income',{datasets:[{label:'Total Income',backgroundColor:'rgba(0,214,143,.5)',borderColor:'var(--inc)',borderWidth:1.5,borderRadius:4,barPercentage:.6,filter:pfx=>t=>t.type==='income'&&t.date.startsWith(pfx)}]});
@@ -940,6 +1002,8 @@ function renderExpenses(){
     <div class="stat-card"><div class="sc-top"><div class="sc-label">This Month</div><div class="sc-ico">💸</div></div><div class="sc-val e">${pkr(mExp)}</div><div class="sc-sub">all spending</div></div>
     <div class="stat-card"><div class="sc-top"><div class="sc-label">All Time</div><div class="sc-ico">📊</div></div><div class="sc-val e">${pkr(total)}</div><div class="sc-sub">total spent</div></div>
     <div class="stat-card"><div class="sc-top"><div class="sc-label">Entries</div><div class="sc-ico">📋</div></div><div class="sc-val p">${list.length}</div><div class="sc-sub">records</div></div>`;
+  const selfSpent=txs.filter(t=>t.tab==='expenses'&&t.type==='expense'&&t.date.startsWith(pfx)).reduce((s,t)=>s+t.amt,0);
+  renderBudgetBlock('bud-exp','expenses',selfSpent,'Self');
   renderCatBreakdown('exp-cat-breakdown','expenses',list,'var(--exp)',true);
   renderExpList();
   renderMonthlyChart('c-exp-monthly','expenses',{datasets:[{label:'Total Expenses',backgroundColor:'rgba(255,75,110,.5)',borderColor:'var(--exp)',borderWidth:1.5,borderRadius:4,barPercentage:.6,filter:pfx=>t=>t.type==='expense'&&t.date.startsWith(pfx)}]});
