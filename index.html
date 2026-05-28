@@ -471,6 +471,7 @@ input,select{font-family:'Inter',sans-serif}
   <!-- CUSTOM TAB -->
   <div id="pg-custom" class="page">
     <div class="g4" id="custom-stats"></div>
+    <div id="bud-custom"></div>
     <div class="card mb14">
       <div class="ctitle" id="custom-tab-title">History</div>
       <div id="custom-cat-breakdown" class="cat-breakdown"></div>
@@ -1113,13 +1114,15 @@ function renderCustomTab(tabId){
   const exp=list.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amt,0);
   const mInc=list.filter(t=>t.type==='income'&&t.date.startsWith(pfx)).reduce((s,t)=>s+t.amt,0);
   const mExp=list.filter(t=>t.type==='expense'&&t.date.startsWith(pfx)).reduce((s,t)=>s+t.amt,0);
+  const net=mInc-mExp;
   document.getElementById('custom-stats').innerHTML=`
     <div class="stat-card"><div class="sc-top"><div class="sc-label">Income (Month)</div><div class="sc-ico">💰</div></div><div class="sc-val i">${pkr(mInc)}</div><div class="sc-sub">this month</div></div>
     <div class="stat-card"><div class="sc-top"><div class="sc-label">Expenses (Month)</div><div class="sc-ico">💸</div></div><div class="sc-val e">${pkr(mExp)}</div><div class="sc-sub">this month</div></div>
-    <div class="stat-card"><div class="sc-top"><div class="sc-label">All Time Income</div><div class="sc-ico">📈</div></div><div class="sc-val i">${pkr(inc)}</div><div class="sc-sub">total</div></div>
-    <div class="stat-card"><div class="sc-top"><div class="sc-label">Entries</div><div class="sc-ico">📋</div></div><div class="sc-val p">${list.length}</div><div class="sc-sub">total</div></div>`;
+    <div class="stat-card"><div class="sc-top"><div class="sc-label">Net (Month)</div><div class="sc-ico">🎯</div></div><div class="sc-val ${net>=0?'i':'e'}">${net>=0?'+':'-'}PKR ${Math.abs(Math.round(net)).toLocaleString('en-PK')}</div><div class="sc-sub">${net>=0?'surplus 🎉':'deficit'}</div></div>
+    <div class="stat-card"><div class="sc-top"><div class="sc-label">Entries</div><div class="sc-ico">📋</div></div><div class="sc-val p">${list.length}</div><div class="sc-sub">total · all time ${pkr(inc)}</div></div>`;
   document.getElementById('custom-tab-title').textContent=`${tabDef.icon} ${tabDef.name} History`;
   document.getElementById('custom-chart-title').textContent=`Monthly Trend — ${tabDef.name}`;
+  renderBudgetBlock('bud-custom', tabId, mExp, tabDef.name);
   renderCatBreakdown('custom-cat-breakdown',tabId,list,'var(--cyan)');
   renderCustomList();
   renderMonthlyChart('c-custom-monthly',tabId,{datasets:[
