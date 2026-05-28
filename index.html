@@ -1195,7 +1195,7 @@ async function initDB(){ if(typeof supabase==='undefined'){ showBadge('error'); 
 function toRow(tx){ const r={...tx,returned_date:tx.returnedDate||''}; delete r.returnedDate; return r; }
 function fromRow(r){ return {...r,id:String(r.id),returnedDate:r.returned_date||''}; }
 async function dbWrite(tx){ if(!sb||!sbReady) return; showBadge('syncing'); try{ const {error}=await sb.from('transactions').upsert(toRow(tx)); if(error) throw error; showBadge('synced'); }catch(e){ console.error(e); showBadge('error'); } }
-async function dbDelete(id){ if(!sb||!sbReady) return; showBadge('syncing'); try{ const {error}=await sb.from('transactions').delete().eq('id',Number(id)||id); if(error) throw error; deletedIds.delete(String(id)); localStorage.setItem('rfq_del',JSON.stringify([...deletedIds])); showBadge('synced'); }catch(e){ console.error(e); showBadge('error'); } }
+async function dbDelete(id){ if(!sb||!sbReady) return; showBadge('syncing'); try{ const {error}=await sb.from('transactions').delete().eq('id',Number(id)||id); if(error) throw error; showBadge('synced'); }catch(e){ console.error(e); showBadge('error'); } }
 
 // ── INIT ──
 function init(){
