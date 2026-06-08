@@ -456,33 +456,18 @@ input,select{font-family:'Inter',sans-serif}
     </div>
   </div>
 
-  <!-- SELF -->
-  <div id="pg-self" class="page">
-    <div class="g4" id="self-stats"></div>
+  <!-- LEDGER (Self / Business / custom tabs) -->
+  <div id="pg-ledger" class="page">
+    <div class="g4" id="ledger-stats"></div>
     <div class="card">
-      <div class="ctitle">👤 Self — Income &amp; Expenses
-        <button class="mini-add" onclick="openAddModal('self')">＋ Add</button>
+      <div class="ctitle" id="ledger-title">Income &amp; Expenses
+        <button class="mini-add" onclick="openAddModal(curPage)">＋ Add</button>
       </div>
       <div class="tx-toolbar">
-        <input type="search" class="tx-search" id="self-search" placeholder="Search…" oninput="renderLedgerList('self')">
-        <div class="seg" id="self-seg"></div>
+        <input type="search" class="tx-search" id="ledger-search" placeholder="Search…" oninput="renderLedgerList(curPage)">
+        <div class="seg" id="ledger-seg"></div>
       </div>
-      <div id="self-list"></div>
-    </div>
-  </div>
-
-  <!-- BUSINESS -->
-  <div id="pg-business" class="page">
-    <div class="g4" id="business-stats"></div>
-    <div class="card">
-      <div class="ctitle">💼 Business — Income &amp; Expenses
-        <button class="mini-add" onclick="openAddModal('business')">＋ Add</button>
-      </div>
-      <div class="tx-toolbar">
-        <input type="search" class="tx-search" id="business-search" placeholder="Search…" oninput="renderLedgerList('business')">
-        <div class="seg" id="business-seg"></div>
-      </div>
-      <div id="business-list"></div>
+      <div id="ledger-list"></div>
     </div>
   </div>
 
@@ -552,8 +537,10 @@ input,select{font-family:'Inter',sans-serif}
         </div>
       </div>
       <div class="card mb14">
-        <div class="ctitle">Manage Tabs</div>
-        <div class="sett-desc" style="margin-bottom:10px">Rename any tab or change its emoji.</div>
+        <div class="ctitle">Manage Tabs
+          <button onclick="openNewTab()" style="padding:6px 12px;background:var(--cyan);color:#0B1426;border-radius:8px;font-size:10px;font-weight:800;cursor:pointer;border:none">＋ New Tab</button>
+        </div>
+        <div class="sett-desc" style="margin-bottom:10px">Add your own tabs, rename any tab, or hide / delete ones you don’t use.</div>
         <div id="tabs-manage-list"></div>
       </div>
       <div class="card mb14">
@@ -709,17 +696,17 @@ const DEFAULT_CATS={
 // ── DATA ──
 // Map any legacy data into the new model: tabs = self | business | lent
 function normalizeTx(t){
-  if(t.type==='savings') t.type='income';            // savings tab removed → treat as income
-  if(t.tab==='lent') return t;                        // lent/borrowed untouched
-  if(t.tab==='business') return t;                    // business untouched
-  t.tab='self';                                       // home/income/expenses/savings/custom → self
-  return t;
+  if(t.type==='savings') t.type='income';                 // savings removed → treat as income
+  if(t.tab==='home'||t.tab==='income'||t.tab==='expenses'||t.tab==='savings') t.tab='self'; // legacy → self
+  return t;                                                // business, lent and custom tabs kept as-is
 }
 let txs  = JSON.parse(localStorage.getItem('rfq_txs')||'[]').map(t=>normalizeTx({...t,id:String(t.id)}));
 let deletedIds = new Set(JSON.parse(localStorage.getItem('rfq_del')||'[]'));
-let sett = {name:'Rizwan',userCats:{},tabMeta:{},...JSON.parse(localStorage.getItem('rfq_set')||'{}')};
+let sett = {name:'Rizwan',userCats:{},tabMeta:{},customTabs:[],hiddenTabs:{},...JSON.parse(localStorage.getItem('rfq_set')||'{}')};
 if(!sett.userCats)   sett.userCats={};
 if(!sett.tabMeta)    sett.tabMeta={};
+if(!sett.customTabs) sett.customTabs=[];
+if(!sett.hiddenTabs) sett.hiddenTabs={};
 let profilePic=localStorage.getItem('rfq_pic')||'';
 
 // category filter state: { tabId: catName|null }
@@ -793,7 +780,9 @@ const FIXED_TABS=[
   {id:'lent',    name:'Lent',     icon:'🤝'},
   {id:'history', name:'History',  icon:'📅'}
 ];
-function getAllTabs(){ const o=sett.tabMeta||{}; return FIXED_TABS.map(t=>o[t.id]?{...t,name:o[t.id].name||t.name,icon:o[t.id].icon||t.icon}:t); }
+function getAllTabs(){ const o=sett.tabMeta||{}; const fixed=FIXED_TABS.map(t=>o[t.id]?{...t,name:o[t.id].name||t.name,icon:o[t.id].icon||t.icon}:t); const custom=(sett.customTabs||[]).filter(t=>!FIXED_TABS.some(f=>f.id===t.id)).map(t=>({...t,custom:true})); return [...fixed,...custom]; }
+function visibleTabs(){ const h=sett.hiddenTabs||{}; return getAllTabs().filter(t=>!h[t.id]); }
+function isLedgerTab(id){ return id==='self'||id==='business'||(sett.customTabs||[]).some(t=>t.id===id); }
 function tabIcon(id){ const t=getAllTabs().find(x=>x.id===id); return t?t.icon:''; }
 
 // ── UTILS ──
@@ -833,7 +822,7 @@ function applyPic(){
 
 // ── NAVIGATION ──
 function buildNav(){
-  const tabs=getAllTabs();
+  const tabs=visibleTabs();
   document.getElementById('sidebar-nav').innerHTML=tabs.map(t=>`<button class="ni ${curPage===t.id?'on':''}" onclick="go('${t.id}')"><span class="ni-ico">${t.icon}</span>${t.name}</button>`).join('');
   const bnHtml=tabs.map(t=>`<button class="bni ${curPage===t.id?'on':''}" onclick="go('${t.id}')" title="${t.name}"><span class="bni-ico">${t.icon}</span><span class="bni-label">${t.name.length>6?t.name.slice(0,6)+'…':t.name}</span></button>`).join('')
     +`<button class="bni ${curPage==='settings'?'on':''}" onclick="go('settings')" title="Settings"><span class="bni-ico">⚙️</span><span class="bni-label">Settings</span></button>`
@@ -938,23 +927,25 @@ function ledgerStats(list,statId){
     statCard('Net · All Time',spkr(inc-exp),(inc-exp)>=0?'i':'e','📊');
 }
 function renderLedger(tab){
+  const def=getAllTabs().find(t=>t.id===tab)||{icon:'',name:tab};
+  document.getElementById('ledger-title').innerHTML=`${def.icon} ${def.name} — Income &amp; Expenses <button class="mini-add" onclick="openAddModal('${tab}')">＋ Add</button>`;
   const list=txs.filter(t=>t.tab===tab&&(t.type==='income'||t.type==='expense'));
-  ledgerStats(list,tab+'-stats');
-  renderSeg(tab+'-seg',tab);
+  ledgerStats(list,'ledger-stats');
+  renderSeg('ledger-seg',tab);
   renderLedgerList(tab);
 }
 function renderLedgerList(tab){
   const f=ledgerFilter[tab]||'all';
-  const q=(document.getElementById(tab+'-search')?.value||'').toLowerCase();
+  const q=(document.getElementById('ledger-search')?.value||'').toLowerCase();
   let list=txs.filter(t=>t.tab===tab&&(t.type==='income'||t.type==='expense'));
   if(f!=='all') list=list.filter(t=>t.type===f);
   if(q) list=list.filter(t=>((t.cat||'')+(t.desc||'')).toLowerCase().includes(q));
-  document.getElementById(tab+'-list').innerHTML=list.length?renderGroup(sortTxs(list),txRow):`<div class="empty"><div class="empty-e">📭</div><div class="empty-t">No entries yet</div><div class="empty-s">Tap ＋ Add to record income or an expense</div></div>`;
+  document.getElementById('ledger-list').innerHTML=list.length?renderGroup(sortTxs(list),txRow):`<div class="empty"><div class="empty-e">📭</div><div class="empty-t">No entries yet</div><div class="empty-s">Tap ＋ Add to record income or an expense</div></div>`;
 }
 
-// ── INCOME / EXPENSE (combined Self + Business) ──
+// ── INCOME / EXPENSE (combined — every ledger tab) ──
 function renderIncexp(){
-  const list=txs.filter(t=>(t.tab==='self'||t.tab==='business')&&(t.type==='income'||t.type==='expense'));
+  const list=txs.filter(t=>t.type==='income'||t.type==='expense');
   ledgerStats(list,'incexp-stats');
   renderSeg('incexp-seg','incexp');
   renderIncexpList();
@@ -962,7 +953,7 @@ function renderIncexp(){
 function renderIncexpList(){
   const f=ledgerFilter['incexp']||'all';
   const q=(document.getElementById('incexp-search')?.value||'').toLowerCase();
-  let list=txs.filter(t=>(t.tab==='self'||t.tab==='business')&&(t.type==='income'||t.type==='expense'));
+  let list=txs.filter(t=>t.type==='income'||t.type==='expense');
   if(f!=='all') list=list.filter(t=>t.type===f);
   if(q) list=list.filter(t=>((t.cat||'')+(t.desc||'')).toLowerCase().includes(q));
   document.getElementById('incexp-list').innerHTML=list.length?renderGroup(sortTxs(list),txRow):`<div class="empty"><div class="empty-e">💵</div><div class="empty-t">No income or expenses yet</div></div>`;
@@ -1041,7 +1032,7 @@ function renderHistory(){
 }
 function renderHistCats(scopeFn){
   let html='';
-  ['self','business'].forEach(id=>{
+  ['self','business',...(sett.customTabs||[]).map(t=>t.id)].forEach(id=>{
     const def=getAllTabs().find(t=>t.id===id)||{icon:'',name:id};
     const list=txs.filter(t=>t.tab===id&&isIE(t)&&scopeFn(t));
     if(!list.length) return;
@@ -1091,17 +1082,66 @@ function renderHistDay(ds){
 function loadSettings(){
   document.getElementById('s-name').value=sett.name||'';
   const lp=document.getElementById('s-loginpass'); if(lp) lp.value=sett.loginPass||'';
+  // category dropdown: Self, Business + any custom tab
+  const sel=document.getElementById('cat-tab-select');
+  if(sel){ const cur=sel.value; const ids=['self','business',...(sett.customTabs||[]).map(t=>t.id)]; sel.innerHTML=ids.map(id=>{ const d=getAllTabs().find(t=>t.id===id)||{id,icon:'',name:id}; return `<option value="${d.id}">${d.icon||''} ${d.name||d.id}</option>`; }).join(''); if(ids.includes(cur)) sel.value=cur; }
   updateSbUI(sbReady); renderTabsManage(); renderCatManage();
 }
-// ── TAB MANAGEMENT (rename / icon only) ──
+// ── TAB MANAGEMENT (add / rename / hide / delete) ──
 let editTabId=null;
 function renderTabsManage(){
   const el=document.getElementById('tabs-manage-list'); if(!el) return;
-  el.innerHTML=getAllTabs().map(t=>`<div class="manage-row"><div class="manage-ico">${t.icon}</div><div class="manage-name" style="flex:1">${t.name}</div><div class="manage-acts"><button class="mbtn edit" onclick="openTabModal('${t.id}')">✏️ Edit</button></div></div>`).join('');
+  const h=sett.hiddenTabs||{};
+  el.innerHTML=getAllTabs().map(t=>{
+    const custom=(sett.customTabs||[]).some(c=>c.id===t.id);
+    const edit=`<button class="mbtn edit" onclick="openTabModal('${t.id}')">✏️</button>`;
+    let act='';
+    if(custom) act=`<button class="mbtn del" onclick="deleteTab('${t.id}')">🗑️ Delete</button>`;
+    else if(t.id!=='home') act=`<button class="mbtn ${h[t.id]?'edit':'del'}" onclick="toggleHideTab('${t.id}')">${h[t.id]?'👁 Show':'🚫 Hide'}</button>`;
+    const sub=custom?'Custom':(h[t.id]?'Hidden':'Built-in');
+    return `<div class="manage-row" style="${h[t.id]?'opacity:.55':''}"><div class="manage-ico">${t.icon}</div><div style="flex:1"><div class="manage-name">${t.name}</div><div class="manage-sub">${sub}</div></div><div class="manage-acts">${edit}${act}</div></div>`;
+  }).join('');
 }
+function openNewTab(){ editTabId=null; document.getElementById('tab-modal-title').textContent='New Tab'; document.getElementById('tab-icon').value=''; document.getElementById('tab-name').value=''; document.getElementById('tab-modal').style.display='flex'; setTimeout(()=>document.getElementById('tab-name').focus(),80); }
 function openTabModal(id){ editTabId=id; const t=getAllTabs().find(x=>x.id===id); document.getElementById('tab-modal-title').textContent='Edit Tab'; document.getElementById('tab-icon').value=t?t.icon:''; document.getElementById('tab-name').value=t?t.name:''; document.getElementById('tab-modal').style.display='flex'; }
 function closeTabModal(){ document.getElementById('tab-modal').style.display='none'; editTabId=null; }
-function saveTab(){ if(!editTabId) return; const icon=document.getElementById('tab-icon').value.trim()||'📁',name=document.getElementById('tab-name').value.trim(); if(!name) return toast('⚠️ Enter a tab name'); if(!sett.tabMeta) sett.tabMeta={}; sett.tabMeta[editTabId]={name,icon}; save(); pushConfigNow('settings',sett); closeTabModal(); buildNav(); renderTabsManage(); const td=getAllTabs().find(t=>t.id===curPage); if(td) document.getElementById('topbar-title').textContent=`${td.icon} ${td.name}`; refresh(); toast('✅ Tab updated!'); }
+function saveTab(){
+  const icon=document.getElementById('tab-icon').value.trim()||'📁',name=document.getElementById('tab-name').value.trim();
+  if(!name) return toast('⚠️ Enter a tab name');
+  if(editTabId){
+    const custom=(sett.customTabs||[]).find(t=>t.id===editTabId);
+    if(custom){ custom.name=name; custom.icon=icon; }
+    else { if(!sett.tabMeta) sett.tabMeta={}; sett.tabMeta[editTabId]={name,icon}; }
+  } else {
+    const id='t_'+Date.now();
+    if(!sett.customTabs) sett.customTabs=[];
+    sett.customTabs.push({id,name,icon});
+    if(!sett.userCats[id]) sett.userCats[id]=[{e:'💰',n:'Income'},{e:'🛒',n:'Purchase'},{e:'💡',n:'Other'}];
+  }
+  save(); pushConfigNow('settings',sett); closeTabModal(); buildNav(); loadSettings();
+  const td=getAllTabs().find(t=>t.id===curPage); if(td) document.getElementById('topbar-title').textContent=`${td.icon} ${td.name}`;
+  refresh(); toast('✅ Saved!');
+}
+function toggleHideTab(id){
+  if(id==='home'){ toast('⚠️ Home can’t be hidden'); return; }
+  if(!sett.hiddenTabs) sett.hiddenTabs={};
+  sett.hiddenTabs[id]=!sett.hiddenTabs[id];
+  if(sett.hiddenTabs[id]&&curPage===id) go('home');
+  save(); pushConfigNow('settings',sett); buildNav(); renderTabsManage();
+  toast(sett.hiddenTabs[id]?'🚫 Tab hidden':'👁 Tab shown');
+}
+function deleteTab(id){
+  const tab=(sett.customTabs||[]).find(t=>t.id===id); if(!tab) return;
+  const ids=txs.filter(t=>t.tab===id).map(t=>String(t.id));
+  if(!confirm(ids.length?`Delete "${tab.name}" and its ${ids.length} entr${ids.length===1?'y':'ies'}? This cannot be undone.`:`Delete "${tab.name}"?`)) return;
+  ids.forEach(i=>deletedIds.add(i)); localStorage.setItem('rfq_del',JSON.stringify([...deletedIds])); pushConfig('deleted_ids',[...deletedIds]);
+  txs=txs.filter(t=>t.tab!==id);
+  if(sbReady) ids.forEach(i=>dbDelete(i));
+  sett.customTabs=sett.customTabs.filter(t=>t.id!==id); delete sett.userCats[id];
+  save(); pushConfigNow('settings',sett);
+  if(curPage===id) go('home');
+  buildNav(); loadSettings(); refresh(); toast('🗑️ Tab deleted');
+}
 function saveSett(){ sett.name=document.getElementById('s-name').value.trim()||'Rizwan'; sett.loginPass=document.getElementById('s-loginpass')?.value.trim()||''; save(); document.getElementById('sb-name-lbl').textContent=sett.name; applyLoginPfp(); }
 function exportData(){ const d={txs,sett,exportedAt:new Date().toISOString(),app:'RizwanFinance',v:'2.0'}; const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'})); a.download=`rizwan-finance-${todayStr()}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); toast('✅ Exported!'); }
 function importData(e){ const file=e.target.files[0]; if(!file) return; const r=new FileReader(); r.onload=ev=>{ try{ const d=JSON.parse(ev.target.result); if(!Array.isArray(d.txs)) throw 0; if(!confirm(`Import ${d.txs.length} entries? Replaces all current data.`)) return; txs=d.txs; if(d.sett) sett={...sett,...d.sett}; save(); toast('✅ Imported! Reloading…'); setTimeout(()=>location.reload(),1000); }catch{ toast('⚠️ Invalid file'); } }; r.readAsText(file); e.target.value=''; }
@@ -1130,8 +1170,8 @@ function openAddModal(tab,lentDir){
     mShow('m-lent-row'); mShow('m-person-fg'); mHide('m-cat-fg'); mTab='lent'; setMType(lentDir||'lent');
   } else if(t==='incexp'){
     mShow('m-domain-row'); mShow('m-type-row'); setMDomain('self'); setMType('expense');
-  } else { // self or business
-    mShow('m-type-row'); mTab=(t==='self'||t==='business')?t:'self'; setMType('expense'); fillCatOpts(getCats(mTab));
+  } else { // self, business, or a custom ledger tab
+    mShow('m-type-row'); mTab=isLedgerTab(t)?t:'self'; setMType('expense'); fillCatOpts(getCats(mTab));
   }
   document.getElementById('modal').style.display='flex';
   setTimeout(()=>document.getElementById('m-amt').focus(),80);
@@ -1147,13 +1187,13 @@ function openEditModal(id){
   if(t.tab==='lent'){
     mShow('m-lent-row'); mShow('m-person-fg'); mHide('m-cat-fg'); setMType(t.type);
   } else {
-    mShow('m-domain-row'); mShow('m-type-row'); setMDomain(t.tab); setMType(t.type);
+    mShow('m-type-row'); setMType(t.type);
     fillCatOpts(getCats(t.tab)); setTimeout(()=>{ document.getElementById('m-cat').value=t.cat; },20);
   }
   document.getElementById('modal').style.display='flex';
 }
 const TYPE_BTN={income:'m-ti',expense:'m-te',lent:'m-tl',borrowed:'m-tb'};
-function setMType(type){ mType=type; document.querySelectorAll('#m-type-row .topt,#m-lent-row .topt').forEach(b=>b.classList.remove('on')); document.getElementById(TYPE_BTN[type])?.classList.add('on'); if(mTab==='self'||mTab==='business') fillCatOpts(getCats(mTab)); }
+function setMType(type){ mType=type; document.querySelectorAll('#m-type-row .topt,#m-lent-row .topt').forEach(b=>b.classList.remove('on')); document.getElementById(TYPE_BTN[type])?.classList.add('on'); if(mTab&&mTab!=='lent') fillCatOpts(getCats(mTab)); }
 function setMDomain(d){ mTab=d; document.querySelectorAll('#m-domain-row .topt').forEach(b=>b.classList.remove('on')); document.getElementById(d==='self'?'m-ds':'m-db')?.classList.add('on'); fillCatOpts(getCats(d)); }
 function fillCatOpts(cats){ document.getElementById('m-cat').innerHTML='<option value="">Select…</option>'+cats.map(c=>`<option value="${c.n}">${c.e} ${c.n}</option>`).join(''); }
 function closeModal(){ document.getElementById('modal').style.display='none'; editId=null; }
@@ -1175,26 +1215,25 @@ let curPage='home';
 function go(page){
   curPage=page;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
-  document.getElementById('pg-'+page)?.classList.add('on');
+  const ledger=isLedgerTab(page);
+  document.getElementById(ledger?'pg-ledger':'pg-'+page)?.classList.add('on');
   buildNav();
   const tabDef=getAllTabs().find(t=>t.id===page);
   document.getElementById('topbar-title').textContent=tabDef?`${tabDef.icon} ${tabDef.name}`:(TITLES[page]||page);
   document.getElementById('topbar-add').style.display=(page==='home'||page==='history'||page==='settings')?'none':'flex';
   if(page==='home') renderHome();
-  else if(page==='self') renderLedger('self');
-  else if(page==='business') renderLedger('business');
   else if(page==='incexp') renderIncexp();
   else if(page==='lent') renderLent();
   else if(page==='history'){ histView={year:null,month:null,day:null}; renderHistory(); }
   else if(page==='settings') loadSettings();
+  else if(ledger) renderLedger(page);
 }
 function refresh(){
   if(curPage==='home') renderHome();
-  else if(curPage==='self') renderLedger('self');
-  else if(curPage==='business') renderLedger('business');
   else if(curPage==='incexp') renderIncexp();
   else if(curPage==='lent') renderLent();
   else if(curPage==='history') renderHistory();
+  else if(isLedgerTab(curPage)) renderLedger(curPage);
 }
 
 // ── SUPABASE ──
@@ -1251,6 +1290,8 @@ async function dbLoadConfig(){
       sett={...sett,...map.settings};
       if(!sett.userCats) sett.userCats={};
       if(!sett.tabMeta) sett.tabMeta={};
+      if(!sett.customTabs) sett.customTabs=[];
+      if(!sett.hiddenTabs) sett.hiddenTabs={};
       localStorage.setItem('rfq_set',JSON.stringify(sett));
     }
     if(typeof map.profile_pic==='string'&&map.profile_pic){
