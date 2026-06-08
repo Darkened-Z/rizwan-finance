@@ -473,7 +473,7 @@ input,select{font-family:'Inter',sans-serif}
         <button class="mini-add" onclick="openAddModal(curPage)">＋ Add</button>
       </div>
       <div class="tx-toolbar">
-        <input type="search" class="tx-search" id="ledger-search" placeholder="Search…" oninput="renderLedgerList(curPage)">
+        <input type="search" class="tx-search" id="ledger-search" placeholder="Search name, category or date…" oninput="renderLedgerList(curPage)">
         <div class="seg" id="ledger-seg"></div>
       </div>
       <div id="ledger-list"></div>
@@ -488,7 +488,7 @@ input,select{font-family:'Inter',sans-serif}
         <button class="mini-add" onclick="openAddModal('incexp')">＋ Add</button>
       </div>
       <div class="tx-toolbar">
-        <input type="search" class="tx-search" id="incexp-search" placeholder="Search…" oninput="renderIncexpList()">
+        <input type="search" class="tx-search" id="incexp-search" placeholder="Search name, category or date…" oninput="renderIncexpList()">
         <div class="seg" id="incexp-seg"></div>
       </div>
       <div id="incexp-list"></div>
@@ -828,6 +828,12 @@ function fmtDate(ds){
   return new Date(ds+'T00:00:00').toLocaleDateString('en-PK',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
 }
 function dayName(ds){ return new Date(ds+'T00:00:00').toLocaleDateString('en',{weekday:'long'}); }
+// text a transaction is searchable by: category, desc, person, date, day, month, year, time
+function txSearchText(t){
+  let s=(t.cat||'')+' '+(t.desc||'')+' '+(t.person||'')+' '+(t.date||'')+' '+(t.time||'');
+  if(t.date){ try{ s+=' '+new Date(t.date+'T00:00:00').toLocaleDateString('en-PK',{weekday:'long',month:'long',day:'numeric',year:'numeric'})+' '+fmtDate(t.date); }catch(e){} }
+  return s.toLowerCase();
+}
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),2500); }
 function confetti(){
   const cols=['#00C4D4','#00D68F','#FFB300','#8B5CF6','#FF4B6E'];
@@ -1031,7 +1037,7 @@ function renderLedgerList(tab){
   const q=(document.getElementById('ledger-search')?.value||'').toLowerCase();
   let list=txs.filter(t=>t.tab===tab&&(t.type==='income'||t.type==='expense'));
   if(f!=='all') list=list.filter(t=>t.type===f);
-  if(q) list=list.filter(t=>((t.cat||'')+(t.desc||'')).toLowerCase().includes(q));
+  if(q) list=list.filter(t=>txSearchText(t).includes(q));
   document.getElementById('ledger-list').innerHTML=list.length?renderGroup(sortTxs(list),txRow):`<div class="empty"><div class="empty-e">📭</div><div class="empty-t">No entries yet</div><div class="empty-s">Tap ＋ Add to record income or an expense</div></div>`;
 }
 
@@ -1047,7 +1053,7 @@ function renderIncexpList(){
   const q=(document.getElementById('incexp-search')?.value||'').toLowerCase();
   let list=txs.filter(t=>t.type==='income'||t.type==='expense');
   if(f!=='all') list=list.filter(t=>t.type===f);
-  if(q) list=list.filter(t=>((t.cat||'')+(t.desc||'')).toLowerCase().includes(q));
+  if(q) list=list.filter(t=>txSearchText(t).includes(q));
   document.getElementById('incexp-list').innerHTML=list.length?renderGroup(sortTxs(list),txRow):`<div class="empty"><div class="empty-e">💵</div><div class="empty-t">No income or expenses yet</div></div>`;
 }
 
