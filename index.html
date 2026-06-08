@@ -138,7 +138,7 @@ input,select{font-family:'Inter',sans-serif}
 .tx-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .tx-search{flex:1;min-width:150px;padding:10px 12px 10px 36px;background:var(--sf2);border:1px solid var(--bd);border-radius:10px;color:var(--tx);font-size:12px;font-weight:500;outline:none;transition:all .2s;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='%235A7EA0' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:12px center}
 .tx-search::placeholder{color:var(--tx3)}.tx-search:focus{border-color:var(--cyan);background:var(--sf3)}
-.date-grp{font-size:10px;font-weight:800;color:var(--tx2);text-transform:uppercase;letter-spacing:1.2px;padding:10px 0 4px;display:flex;align-items:center;gap:8px}
+.date-grp{font-size:10px;font-weight:800;color:var(--tx);text-transform:uppercase;letter-spacing:1.2px;padding:10px 0 4px;display:flex;align-items:center;gap:8px}
 .date-grp::after{content:'';flex:1;height:1px;background:var(--bd)}
 .tx-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;margin-bottom:3px;transition:background .15s;color:var(--tx)}
 .tx-row:hover{background:var(--sf2)}
@@ -152,11 +152,11 @@ input,select{font-family:'Inter',sans-serif}
 .tx-body{flex:1;min-width:0}
 .tx-cat{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--tx);letter-spacing:-.1px}
 .tx-sub{font-size:11px;color:var(--tx2);margin-top:2px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tx-meta{font-size:10px;color:var(--tx3);margin-top:1px;font-weight:500}
+.tx-meta{font-size:11px;color:var(--tx);margin-top:1px;font-weight:700}
 .tx-right{text-align:right;flex-shrink:0;min-width:80px}
 .tx-amt{font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.2px}
 .tx-amt.i{color:var(--inc)}.tx-amt.e{color:var(--exp)}.tx-amt.l{color:var(--lent)}.tx-amt.b{color:var(--amb)}.tx-amt.s{color:var(--sav)}.tx-amt.c{color:var(--tx)}
-.tx-date-sm{font-size:10px;color:var(--tx2);margin-top:2px;font-weight:500}
+.tx-date-sm{font-size:11px;color:var(--tx);margin-top:2px;font-weight:700}
 .tx-acts{display:flex;gap:4px;margin-left:6px;flex-shrink:0}
 .ta{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;border:1px solid var(--bd);background:var(--sf2);color:var(--tx);transition:all .15s}
 .ta:hover{background:rgba(0,196,212,.18);color:var(--cyan);border-color:var(--cyan)}
@@ -832,7 +832,7 @@ function buildNav(){
 
 // ── RENDER HELPERS ──
 function sortTxs(list){ return [...list].sort((a,b)=>b.date.localeCompare(a.date)||(b.time||'').localeCompare(a.time||'')||b.id.localeCompare(a.id)); }
-function renderGroup(list,fn){ if(!list.length) return ''; let html='',ld=''; list.forEach(t=>{ if(t.date!==ld){ html+=`<div class="date-grp">${fmtDate(t.date)}<span style="font-weight:400;font-size:9px;margin-left:5px;color:var(--tx3)">${dayName(t.date)}</span></div>`; ld=t.date; } html+=fn(t); }); return html; }
+function renderGroup(list,fn){ if(!list.length) return ''; let html='',ld=''; list.forEach(t=>{ if(t.date!==ld){ html+=`<div class="date-grp">${fmtDate(t.date)}<span style="font-weight:700;font-size:10px;margin-left:6px;color:var(--tx)">${dayName(t.date)}</span></div>`; ld=t.date; } html+=fn(t); }); return html; }
 
 function txRow(t){
   const isInc=t.type==='income',isLent=t.type==='lent',isBor=t.type==='borrowed';
@@ -1069,7 +1069,7 @@ function renderHistDays(year,month){
   document.getElementById('hist-list-title').textContent=`${MONTH_NAMES[month]} ${year} — By Day`;
   const days=[...new Set(txs.filter(t=>isIE(t)&&t.date.slice(0,7)===pfx).map(t=>t.date))].sort((a,b)=>b.localeCompare(a));
   document.getElementById('hist-list').innerHTML=days.length
-    ? days.map(ds=>histRow(`${Number(ds.slice(8,10))} <span style="font-weight:500;font-size:11px;color:var(--tx2)">${dayName(ds)}</span>`, histTotals(t=>t.date===ds), `histGo(${year},${month},'${ds}')`, true)).join('')
+    ? days.map(ds=>histRow(`${Number(ds.slice(8,10))} <span style="font-weight:700;font-size:11px;color:var(--tx)">${dayName(ds)}</span>`, histTotals(t=>t.date===ds), `histGo(${year},${month},'${ds}')`, true)).join('')
     : emptyHist();
 }
 function renderHistDay(ds){
