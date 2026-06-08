@@ -459,6 +459,10 @@ input,select{font-family:'Inter',sans-serif}
   <!-- LEDGER (Self / Business / custom tabs) -->
   <div id="pg-ledger" class="page">
     <div class="g4" id="ledger-stats"></div>
+    <div class="card mb14">
+      <div class="ctitle">Categories <span style="font-weight:400;font-size:10px;color:var(--tx2);text-transform:none;letter-spacing:0">— tap a category for its history</span></div>
+      <div id="ledger-cat-grid" class="month-grid"></div>
+    </div>
     <div class="card">
       <div class="ctitle" id="ledger-title">Income &amp; Expenses
         <button class="mini-add" onclick="openAddModal(curPage)">＋ Add</button>
@@ -642,6 +646,22 @@ input,select{font-family:'Inter',sans-serif}
     <div class="mstat-grid" id="month-modal-stats"></div>
     <div class="ctitle" style="margin-top:10px">Transactions</div>
     <div id="month-modal-list"></div>
+  </div>
+</div>
+
+<!-- CATEGORY HISTORY MODAL -->
+<div class="overlay" id="cat-hist-modal" style="display:none" onclick="if(event.target===this)closeCatHist()">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="cathist-title">Category</div>
+        <div class="sett-desc" id="cathist-sub"></div>
+      </div>
+      <button class="modal-x" onclick="closeCatHist()">✕</button>
+    </div>
+    <div class="mstat-grid" id="cathist-stats"></div>
+    <div class="ctitle" style="margin-top:10px">Transactions</div>
+    <div id="cathist-list"></div>
   </div>
 </div>
 
@@ -931,9 +951,44 @@ function renderLedger(tab){
   document.getElementById('ledger-title').innerHTML=`${def.icon} ${def.name} — Income &amp; Expenses <button class="mini-add" onclick="openAddModal('${tab}')">＋ Add</button>`;
   const list=txs.filter(t=>t.tab===tab&&(t.type==='income'||t.type==='expense'));
   ledgerStats(list,'ledger-stats');
+  renderLedgerCats(tab,list);
   renderSeg('ledger-seg',tab);
   renderLedgerList(tab);
 }
+// category cards (one box per category, like the monthly cards)
+function renderLedgerCats(tab,list){
+  const el=document.getElementById('ledger-cat-grid'); if(!el) return;
+  const map={};
+  list.forEach(t=>{ const k=t.cat||'—'; if(!map[k]) map[k]={inc:0,exp:0}; if(t.type==='income') map[k].inc+=t.amt; else map[k].exp+=t.amt; });
+  const cats=Object.keys(map).sort((a,b)=>(map[b].inc+map[b].exp)-(map[a].inc+map[a].exp));
+  if(!cats.length){ el.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-e">🗂️</div><div class="empty-t">No categories yet</div><div class="empty-s">Add an entry and its category will appear here</div></div>`; return; }
+  el.innerHTML=cats.map(cat=>{
+    const m=map[cat],n=m.inc-m.exp;
+    const incRow=m.inc?`<div class="month-card-row"><span style="color:var(--tx2)">Income</span><span style="color:var(--inc)">${pkr(m.inc)}</span></div>`:'';
+    const expRow=m.exp?`<div class="month-card-row"><span style="color:var(--tx2)">Expense</span><span style="color:var(--exp)">${pkr(m.exp)}</span></div>`:'';
+    return `<div class="month-card" onclick="openCatHist('${tab}','${cat.replace(/'/g,"\\'")}')">
+      <div class="month-card-name">${emojiOf(cat,tab)} ${cat}</div>
+      ${incRow}${expRow}
+      <div class="month-card-net" style="color:${n>=0?'var(--inc)':'var(--exp)'}">${spkr(n)}</div>
+    </div>`;
+  }).join('');
+}
+function openCatHist(tab,cat){
+  const def=getAllTabs().find(t=>t.id===tab)||{icon:'',name:tab};
+  document.getElementById('cathist-title').textContent=`${emojiOf(cat,tab)} ${cat}`;
+  document.getElementById('cathist-sub').textContent=`${def.icon||''} ${def.name||tab}`;
+  const list=txs.filter(t=>t.tab===tab&&t.cat===cat&&(t.type==='income'||t.type==='expense'));
+  const inc=list.filter(t=>t.type==='income').reduce((s,t)=>s+t.amt,0);
+  const exp=list.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amt,0);
+  const n=inc-exp;
+  document.getElementById('cathist-stats').innerHTML=
+    `<div class="mstat"><div class="mstat-lbl">Income</div><div class="mstat-val" style="color:var(--inc)">${pkr(inc)}</div></div>
+     <div class="mstat"><div class="mstat-lbl">Expense</div><div class="mstat-val" style="color:var(--exp)">${pkr(exp)}</div></div>
+     <div class="mstat"><div class="mstat-lbl">Net</div><div class="mstat-val" style="color:${n>=0?'var(--inc)':'var(--exp)'}">${spkr(n)}</div></div>`;
+  document.getElementById('cathist-list').innerHTML=list.length?renderGroup(sortTxs(list),txRow):`<div class="empty"><div class="empty-t">No transactions</div></div>`;
+  document.getElementById('cat-hist-modal').style.display='flex';
+}
+function closeCatHist(){ document.getElementById('cat-hist-modal').style.display='none'; }
 function renderLedgerList(tab){
   const f=ledgerFilter[tab]||'all';
   const q=(document.getElementById('ledger-search')?.value||'').toLowerCase();
