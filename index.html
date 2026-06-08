@@ -450,6 +450,11 @@ input,select{font-family:'Inter',sans-serif}
   <!-- HOME (DASHBOARD) -->
   <div id="pg-home" class="page on">
     <div class="g4" id="home-stats"></div>
+    <div class="card mb14">
+      <div class="ctitle">Tabs <span style="font-weight:400;font-size:10px;color:var(--tx2);text-transform:none;letter-spacing:0">— tap a tab, then a category for its history</span></div>
+      <div class="hist-crumb" id="dash-crumb"></div>
+      <div id="dash-grid" class="month-grid"></div>
+    </div>
     <div class="card">
       <div class="ctitle">Monthly History <span style="font-weight:400;font-size:10px;color:var(--tx2);text-transform:none;letter-spacing:0">— tap a month to see its income, expenses &amp; profit</span></div>
       <div id="home-months" class="month-grid"></div>
@@ -891,6 +896,7 @@ function renderHome(){
     statCard('Expenses · This Month',pkr(mExp),'e','💸')+
     statCard('Net · This Month',spkr(mInc-mExp),(mInc-mExp)>=0?'i':'e','🎯',(mInc-mExp)>=0?'profit 🎉':'loss')+
     statCard('All-Time Net',spkr(allInc-allExp),(allInc-allExp)>=0?'i':'e','📊','income − expenses');
+  renderDashTabs();
   // past months grid (everything before the current month)
   const months=[...new Set(money.map(t=>t.date.slice(0,7)))].filter(m=>m!==pfx).sort((a,b)=>b.localeCompare(a));
   const el=document.getElementById('home-months');
@@ -955,14 +961,12 @@ function renderLedger(tab){
   renderSeg('ledger-seg',tab);
   renderLedgerList(tab);
 }
-// category cards (one box per category, like the monthly cards)
-function renderLedgerCats(tab,list){
-  const el=document.getElementById('ledger-cat-grid'); if(!el) return;
+// shared: build category cards HTML (one box per category, like the monthly cards)
+function catCardsHtml(tab,list){
   const map={};
   list.forEach(t=>{ const k=t.cat||'—'; if(!map[k]) map[k]={inc:0,exp:0}; if(t.type==='income') map[k].inc+=t.amt; else map[k].exp+=t.amt; });
   const cats=Object.keys(map).sort((a,b)=>(map[b].inc+map[b].exp)-(map[a].inc+map[a].exp));
-  if(!cats.length){ el.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-e">🗂️</div><div class="empty-t">No categories yet</div><div class="empty-s">Add an entry and its category will appear here</div></div>`; return; }
-  el.innerHTML=cats.map(cat=>{
+  return cats.map(cat=>{
     const m=map[cat],n=m.inc-m.exp;
     const incRow=m.inc?`<div class="month-card-row"><span style="color:var(--tx2)">Income</span><span style="color:var(--inc)">${pkr(m.inc)}</span></div>`:'';
     const expRow=m.exp?`<div class="month-card-row"><span style="color:var(--tx2)">Expense</span><span style="color:var(--exp)">${pkr(m.exp)}</span></div>`:'';
@@ -972,6 +976,39 @@ function renderLedgerCats(tab,list){
       <div class="month-card-net" style="color:${n>=0?'var(--inc)':'var(--exp)'}">${spkr(n)}</div>
     </div>`;
   }).join('');
+}
+function renderLedgerCats(tab,list){
+  const el=document.getElementById('ledger-cat-grid'); if(!el) return;
+  el.innerHTML=catCardsHtml(tab,list)||`<div class="empty" style="grid-column:1/-1"><div class="empty-e">🗂️</div><div class="empty-t">No categories yet</div><div class="empty-s">Add an entry and its category will appear here</div></div>`;
+}
+// ── DASHBOARD: tab boxes → category boxes (drill-down like History) ──
+let dashTab=null;
+function dashGo(tab){ dashTab=tab||null; renderDashTabs(); }
+function renderDashTabs(){
+  const grid=document.getElementById('dash-grid'); if(!grid) return;
+  const crumb=document.getElementById('dash-crumb');
+  if(dashTab===null){
+    crumb.innerHTML=`<div class="hc cur">📂 All Tabs</div>`;
+    const cards=visibleTabs().filter(t=>isLedgerTab(t.id)).map(tb=>{
+      const list=txs.filter(t=>t.tab===tb.id&&(t.type==='income'||t.type==='expense'));
+      const inc=list.filter(t=>t.type==='income').reduce((s,t)=>s+t.amt,0);
+      const exp=list.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amt,0);
+      const n=inc-exp;
+      const incRow=inc?`<div class="month-card-row"><span style="color:var(--tx2)">Income</span><span style="color:var(--inc)">${pkr(inc)}</span></div>`:'';
+      const expRow=exp?`<div class="month-card-row"><span style="color:var(--tx2)">Expense</span><span style="color:var(--exp)">${pkr(exp)}</span></div>`:'';
+      return `<div class="month-card" onclick="dashGo('${tb.id}')">
+        <div class="month-card-name">${tb.icon} ${tb.name}</div>
+        ${incRow}${expRow}
+        <div class="month-card-net" style="color:${n>=0?'var(--inc)':'var(--exp)'}">${spkr(n)}</div>
+      </div>`;
+    }).join('');
+    grid.innerHTML=cards||`<div class="empty" style="grid-column:1/-1"><div class="empty-e">📂</div><div class="empty-t">No tabs with data yet</div></div>`;
+  } else {
+    const def=getAllTabs().find(t=>t.id===dashTab)||{icon:'',name:dashTab};
+    crumb.innerHTML=`<div class="hc" onclick="dashGo(null)">📂 All Tabs</div><span class="hc-sep">›</span><div class="hc cur">${def.icon} ${def.name}</div>`;
+    const list=txs.filter(t=>t.tab===dashTab&&(t.type==='income'||t.type==='expense'));
+    grid.innerHTML=catCardsHtml(dashTab,list)||`<div class="empty" style="grid-column:1/-1"><div class="empty-e">🗂️</div><div class="empty-t">No categories yet</div></div>`;
+  }
 }
 function openCatHist(tab,cat){
   const def=getAllTabs().find(t=>t.id===tab)||{icon:'',name:tab};
@@ -1276,7 +1313,7 @@ function go(page){
   const tabDef=getAllTabs().find(t=>t.id===page);
   document.getElementById('topbar-title').textContent=tabDef?`${tabDef.icon} ${tabDef.name}`:(TITLES[page]||page);
   document.getElementById('topbar-add').style.display=(page==='home'||page==='history'||page==='settings')?'none':'flex';
-  if(page==='home') renderHome();
+  if(page==='home'){ dashTab=null; renderHome(); }
   else if(page==='incexp') renderIncexp();
   else if(page==='lent') renderLent();
   else if(page==='history'){ histView={year:null,month:null,day:null}; renderHistory(); }
