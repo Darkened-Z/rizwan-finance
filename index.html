@@ -1271,8 +1271,13 @@ function openEditModal(id){
   if(t.tab==='lent'){
     mShow('m-lent-row'); mShow('m-person-fg'); mHide('m-cat-fg'); setMType(t.type);
   } else {
-    mShow('m-type-row'); setMType(t.type);
-    fillCatOpts(getCats(t.tab)); setTimeout(()=>{ document.getElementById('m-cat').value=t.cat; },20);
+    mShow('m-type-row'); setMType(t.type);           // setMType already fills categories for mTab
+    const sel=document.getElementById('m-cat');
+    // if the tx's category was renamed/deleted since, keep it available so Save still works
+    if(t.cat && ![...sel.options].some(o=>o.value===t.cat)){
+      const opt=document.createElement('option'); opt.value=t.cat; opt.textContent=`${emojiOf(t.cat,t.tab)} ${t.cat}`; sel.appendChild(opt);
+    }
+    sel.value=t.cat||'';
   }
   document.getElementById('modal').style.display='flex';
 }
