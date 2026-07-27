@@ -349,6 +349,9 @@ input,select{font-family:'Inter',sans-serif}
 .month-card-name{font-size:13px;font-weight:800;color:var(--tx);margin-bottom:10px}
 .month-card-row{display:flex;justify-content:space-between;font-size:11px;font-weight:600;margin-bottom:4px}
 .month-card-net{margin-top:8px;padding-top:8px;border-top:1px solid var(--bd);font-size:16px;font-weight:900;font-variant-numeric:tabular-nums;text-align:right}
+.month-card{position:relative}
+.month-card::after{content:'›';position:absolute;top:12px;right:14px;color:var(--tx3);font-size:16px;font-weight:800;transition:color .15s,transform .15s}
+.month-card:hover::after{color:var(--cyan);transform:translateX(3px)}
 .mini-add{background:var(--cyan);color:#0B1426;border:none;border-radius:8px;padding:4px 12px;font-size:11px;font-weight:800;cursor:pointer}
 
 /* SEGMENTED FILTER */
@@ -828,6 +831,20 @@ function fmtDate(ds){
   return new Date(ds+'T00:00:00').toLocaleDateString('en-PK',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
 }
 function dayName(ds){ return new Date(ds+'T00:00:00').toLocaleDateString('en',{weekday:'long'}); }
+// ── DATA ACCESSORS (single source of truth: txs[]) ──
+// Every renderer goes through these so every tab reads the same data.
+const Q={
+  incExp: (list=txs)=>list.filter(t=>t.type==='income'||t.type==='expense'),
+  byTab:  (tab,list=txs)=>list.filter(t=>t.tab===tab),
+  byType: (type,list=txs)=>list.filter(t=>t.type===type),
+  byCat:  (cat,list=txs)=>list.filter(t=>t.cat===cat),
+  inMonth:(pfx,list=txs)=>list.filter(t=>t.date.startsWith(pfx)),
+  onDate: (ds,list=txs)=>list.filter(t=>t.date===ds),
+  sum:    list=>list.reduce((s,t)=>s+t.amt,0),
+  // full totals object for any subset
+  totals: list=>{ let inc=0,exp=0; list.forEach(t=>{ if(t.type==='income') inc+=t.amt; else if(t.type==='expense') exp+=t.amt; }); return {inc,exp,net:inc-exp}; }
+};
+
 // text a transaction is searchable by: category, desc, person, date, day, month, year, time
 function txSearchText(t){
   let s=(t.cat||'')+' '+(t.desc||'')+' '+(t.person||'')+' '+(t.date||'')+' '+(t.time||'');
@@ -892,11 +909,10 @@ function statCard(label,val,cls,ico,sub=''){
 // ── HOME (DASHBOARD) ──
 function renderHome(){
   const pfx=curMonthPfx();
-  const money=txs.filter(t=>t.type==='income'||t.type==='expense');
-  const mInc=money.filter(t=>t.type==='income'&&t.date.startsWith(pfx)).reduce((s,t)=>s+t.amt,0);
-  const mExp=money.filter(t=>t.type==='expense'&&t.date.startsWith(pfx)).reduce((s,t)=>s+t.amt,0);
-  const allInc=money.filter(t=>t.type==='income').reduce((s,t)=>s+t.amt,0);
-  const allExp=money.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amt,0);
+  const money=Q.incExp();
+  const monthMoney=Q.inMonth(pfx,money);
+  const {inc:mInc,exp:mExp}=Q.totals(monthMoney);
+  const {inc:allInc,exp:allExp}=Q.totals(money);
   document.getElementById('home-stats').innerHTML=
     statCard('Income · This Month',pkr(mInc),'i','💰')+
     statCard('Expenses · This Month',pkr(mExp),'e','💸')+
@@ -908,20 +924,16 @@ function renderHome(){
   const el=document.getElementById('home-months');
   if(!months.length){ el.innerHTML=`<div class="empty"><div class="empty-e">📅</div><div class="empty-t">No past months yet</div><div class="empty-s">Once a month ends it will show up here — tap to see its transactions</div></div>`; return; }
   el.innerHTML=months.map(m=>{
-    const inc=money.filter(t=>t.type==='income'&&t.date.startsWith(m)).reduce((s,t)=>s+t.amt,0);
-    const exp=money.filter(t=>t.type==='expense'&&t.date.startsWith(m)).reduce((s,t)=>s+t.amt,0);
     const [yy,mm]=m.split('-');
-    return histRow(`${MONTH_NAMES[Number(mm)-1]} ${yy}`, {inc,exp,net:inc-exp}, `openMonth('${m}')`, true);
+    return histRow(`${MONTH_NAMES[Number(mm)-1]} ${yy}`, Q.totals(Q.inMonth(m,money)), `openMonth('${m}')`, true);
   }).join('');
 }
 // month detail modal
 function openMonth(pfx){
   const [yy,mm]=pfx.split('-');
   document.getElementById('month-modal-title').textContent=MONTH_NAMES[Number(mm)-1]+' '+yy;
-  const list=txs.filter(t=>(t.type==='income'||t.type==='expense')&&t.date.startsWith(pfx));
-  const inc=list.filter(t=>t.type==='income').reduce((s,t)=>s+t.amt,0);
-  const exp=list.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amt,0);
-  const n=inc-exp;
+  const list=Q.inMonth(pfx,Q.incExp());
+  const {inc,exp}=Q.totals(list);
   document.getElementById('month-modal-stats').innerHTML=
     `<div class="mstat"><div class="mstat-lbl">Income</div><div class="mstat-val" style="color:var(--inc)">${pkr(inc)}</div></div>
      <div class="mstat"><div class="mstat-lbl">Expense</div><div class="mstat-val" style="color:var(--exp)">${pkr(exp)}</div></div>`;
@@ -941,10 +953,8 @@ function renderSeg(elId,key){
 function setLedgerFilter(key,v){ ledgerFilter[key]=v; if(key==='incexp') renderIncexp(); else renderLedger(key); }
 function ledgerStats(list,statId){
   const pfx=curMonthPfx();
-  const mInc=list.filter(t=>t.type==='income'&&t.date.startsWith(pfx)).reduce((s,t)=>s+t.amt,0);
-  const mExp=list.filter(t=>t.type==='expense'&&t.date.startsWith(pfx)).reduce((s,t)=>s+t.amt,0);
-  const inc=list.filter(t=>t.type==='income').reduce((s,t)=>s+t.amt,0);
-  const exp=list.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amt,0);
+  const {inc:mInc,exp:mExp}=Q.totals(Q.inMonth(pfx,list));
+  const {inc,exp}=Q.totals(list);
   document.getElementById(statId).innerHTML=
     statCard('Income · Month',pkr(mInc),'i','💰')+
     statCard('Expenses · Month',pkr(mExp),'e','💸')+
@@ -954,7 +964,7 @@ function ledgerStats(list,statId){
 function renderLedger(tab){
   const def=getAllTabs().find(t=>t.id===tab)||{icon:'',name:tab};
   document.getElementById('ledger-title').innerHTML=`${def.icon} ${def.name} — Income &amp; Expenses <button class="mini-add" onclick="openAddModal('${tab}')">＋ Add</button>`;
-  const list=txs.filter(t=>t.tab===tab&&(t.type==='income'||t.type==='expense'));
+  const list=Q.incExp(Q.byTab(tab));
   ledgerStats(list,'ledger-stats');
   renderLedgerCats(tab,list);
   renderSeg('ledger-seg',tab);
@@ -988,16 +998,12 @@ function renderDashTabs(){
   if(dashTab===null){
     crumb.innerHTML=`<div class="hc cur">📂 All Tabs</div>`;
     const tabs=visibleTabs().filter(t=>isLedgerTab(t.id));
-    const rows=tabs.map(tb=>{
-      const inc=txs.filter(t=>t.tab===tb.id&&t.type==='income').reduce((s,t)=>s+t.amt,0);
-      const exp=txs.filter(t=>t.tab===tb.id&&t.type==='expense').reduce((s,t)=>s+t.amt,0);
-      return histRow(`${tb.icon} ${tb.name}`, {inc,exp,net:inc-exp}, `dashGo('${tb.id}')`, true);
-    }).join('');
+    const rows=tabs.map(tb=>histRow(`${tb.icon} ${tb.name}`, Q.totals(Q.byTab(tb.id)), `dashGo('${tb.id}')`, true)).join('');
     grid.innerHTML=rows||`<div class="empty"><div class="empty-e">📂</div><div class="empty-t">No tabs with data yet</div></div>`;
   } else {
     const def=getAllTabs().find(t=>t.id===dashTab)||{icon:'',name:dashTab};
     crumb.innerHTML=`<div class="hc" onclick="dashGo(null)">📂 All Tabs</div><span class="hc-sep">›</span><div class="hc cur">${def.icon} ${def.name}</div>`;
-    const list=txs.filter(t=>t.tab===dashTab&&(t.type==='income'||t.type==='expense'));
+    const list=Q.incExp(Q.byTab(dashTab));
     const map={};
     list.forEach(t=>{ const k=t.cat||'—'; if(!map[k]) map[k]={inc:0,exp:0}; if(t.type==='income') map[k].inc+=t.amt; else map[k].exp+=t.amt; });
     const cats=Object.keys(map).sort((a,b)=>(map[b].inc+map[b].exp)-(map[a].inc+map[a].exp));
@@ -1009,11 +1015,9 @@ function renderDashTabs(){
 function openCatHist(tab,cat){
   const def=getAllTabs().find(t=>t.id===tab)||{icon:'',name:tab};
   document.getElementById('cathist-title').textContent=`${emojiOf(cat,tab)} ${cat}`;
-  document.getElementById('cathist-sub').textContent=`${def.icon||''} ${def.name||tab}`;
-  const list=txs.filter(t=>t.tab===tab&&t.cat===cat&&(t.type==='income'||t.type==='expense'));
-  const inc=list.filter(t=>t.type==='income').reduce((s,t)=>s+t.amt,0);
-  const exp=list.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amt,0);
-  const n=inc-exp;
+  const list=Q.incExp(Q.byCat(cat,Q.byTab(tab)));
+  document.getElementById('cathist-sub').textContent=`${def.icon||''} ${def.name||tab} · ${list.length} transaction${list.length===1?'':'s'}`;
+  const {inc,exp}=Q.totals(list);
   document.getElementById('cathist-stats').innerHTML=
     `<div class="mstat"><div class="mstat-lbl">Income</div><div class="mstat-val" style="color:var(--inc)">${pkr(inc)}</div></div>
      <div class="mstat"><div class="mstat-lbl">Expense</div><div class="mstat-val" style="color:var(--exp)">${pkr(exp)}</div></div>`;
@@ -1024,7 +1028,7 @@ function closeCatHist(){ document.getElementById('cat-hist-modal').style.display
 function renderLedgerList(tab){
   const f=ledgerFilter[tab]||'all';
   const q=(document.getElementById('ledger-search')?.value||'').toLowerCase();
-  let list=txs.filter(t=>t.tab===tab&&(t.type==='income'||t.type==='expense'));
+  let list=Q.incExp(Q.byTab(tab));
   if(f!=='all') list=list.filter(t=>t.type===f);
   if(q) list=list.filter(t=>txSearchText(t).includes(q));
   document.getElementById('ledger-list').innerHTML=list.length?renderGroup(sortTxs(list),txRow):`<div class="empty"><div class="empty-e">📭</div><div class="empty-t">No entries yet</div><div class="empty-s">Tap ＋ Add to record income or an expense</div></div>`;
@@ -1032,15 +1036,14 @@ function renderLedgerList(tab){
 
 // ── INCOME / EXPENSE (combined — every ledger tab) ──
 function renderIncexp(){
-  const list=txs.filter(t=>t.type==='income'||t.type==='expense');
-  ledgerStats(list,'incexp-stats');
+  ledgerStats(Q.incExp(),'incexp-stats');
   renderSeg('incexp-seg','incexp');
   renderIncexpList();
 }
 function renderIncexpList(){
   const f=ledgerFilter['incexp']||'all';
   const q=(document.getElementById('incexp-search')?.value||'').toLowerCase();
-  let list=txs.filter(t=>t.type==='income'||t.type==='expense');
+  let list=Q.incExp();
   if(f!=='all') list=list.filter(t=>t.type===f);
   if(q) list=list.filter(t=>txSearchText(t).includes(q));
   document.getElementById('incexp-list').innerHTML=list.length?renderGroup(sortTxs(list),txRow):`<div class="empty"><div class="empty-e">💵</div><div class="empty-t">No income or expenses yet</div></div>`;
@@ -1048,9 +1051,9 @@ function renderIncexpList(){
 
 // ── LENT ──
 function renderLent(){
-  const ll=txs.filter(t=>t.type==='lent'),bl=txs.filter(t=>t.type==='borrowed');
-  const lo=ll.filter(t=>!t.returned).reduce((s,t)=>s+t.amt,0),bo=bl.filter(t=>!t.returned).reduce((s,t)=>s+t.amt,0);
-  const lb=ll.filter(t=>t.returned).reduce((s,t)=>s+t.amt,0),bb=bl.filter(t=>t.returned).reduce((s,t)=>s+t.amt,0);
+  const ll=Q.byType('lent'),bl=Q.byType('borrowed');
+  const lo=Q.sum(ll.filter(t=>!t.returned)),bo=Q.sum(bl.filter(t=>!t.returned));
+  const lb=Q.sum(ll.filter(t=>t.returned)),bb=Q.sum(bl.filter(t=>t.returned));
   document.getElementById('lent-stats').innerHTML=
     statCard('Owed to Me',pkr(lo),'e','💸','outstanding')+
     statCard('I Owe',pkr(bo),'l','📥','outstanding')+
@@ -1065,11 +1068,7 @@ function markReturned(id){ const t=txs.find(x=>String(x.id)===String(id)); if(!t
 let histView={year:null,month:null,day:null};
 const MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
 function isIE(t){ return t.type==='income'||t.type==='expense'; }
-function histTotals(filterFn){
-  let inc=0,exp=0;
-  txs.forEach(t=>{ if(!filterFn(t)) return; if(t.type==='income') inc+=t.amt; else if(t.type==='expense') exp+=t.amt; });
-  return {inc,exp,net:inc-exp};
-}
+function histTotals(filterFn){ return Q.totals(txs.filter(filterFn)); }
 function histGo(year,month,day){
   histView={year:(year===undefined?null:year),month:(month===undefined?null:month),day:(day===undefined?null:day)};
   renderHistory();
