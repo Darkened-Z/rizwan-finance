@@ -1001,8 +1001,9 @@ function renderDashTabs(){
     const map={};
     list.forEach(t=>{ const k=t.cat||'—'; if(!map[k]) map[k]={inc:0,exp:0}; if(t.type==='income') map[k].inc+=t.amt; else map[k].exp+=t.amt; });
     const cats=Object.keys(map).sort((a,b)=>(map[b].inc+map[b].exp)-(map[a].inc+map[a].exp));
-    const rows=cats.map(c=>{ const m=map[c]; return histRow(`${emojiOf(c,dashTab)} ${c}`, {inc:m.inc,exp:m.exp,net:m.inc-m.exp}, `openCatHist('${dashTab}','${c.replace(/'/g,"\\'")}')`, true); }).join('');
-    grid.innerHTML=rows||`<div class="empty"><div class="empty-e">🗂️</div><div class="empty-t">No categories yet</div></div>`;
+    const catRows=cats.map(c=>{ const m=map[c]; return histRow(`${emojiOf(c,dashTab)} ${c}`, {inc:m.inc,exp:m.exp,net:m.inc-m.exp}, `openCatHist('${dashTab}','${c.replace(/'/g,"\\'")}')`, true); }).join('');
+    const txList=list.length?`<div class="ctitle" style="margin-top:18px">All Transactions</div>${renderGroup(sortTxs(list),txRow)}`:'';
+    grid.innerHTML=(catRows||`<div class="empty"><div class="empty-e">🗂️</div><div class="empty-t">No categories yet</div></div>`)+txList;
   }
 }
 function openCatHist(tab,cat){
