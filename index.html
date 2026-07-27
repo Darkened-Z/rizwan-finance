@@ -358,7 +358,7 @@ input,select{font-family:'Inter',sans-serif}
 .seg-btn.on{background:rgba(0,196,212,.12);border-color:var(--cyan);color:var(--cyan)}
 
 /* MONTH MODAL MINI STATS */
-.mstat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:6px}
+.mstat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}
 .mstat{background:var(--sf2);border:1px solid var(--bd);border-radius:10px;padding:12px;text-align:center}
 .mstat-lbl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--tx2)}
 .mstat-val{font-size:15px;font-weight:900;margin-top:3px;font-variant-numeric:tabular-nums}
@@ -453,11 +453,11 @@ input,select{font-family:'Inter',sans-serif}
     <div class="card mb14">
       <div class="ctitle">Tabs <span style="font-weight:400;font-size:10px;color:var(--tx2);text-transform:none;letter-spacing:0">— tap a tab, then a category for its history</span></div>
       <div class="hist-crumb" id="dash-crumb"></div>
-      <div id="dash-grid" class="month-grid"></div>
+      <div id="dash-grid"></div>
     </div>
     <div class="card">
-      <div class="ctitle">Monthly History <span style="font-weight:400;font-size:10px;color:var(--tx2);text-transform:none;letter-spacing:0">— tap a month to see its income, expenses &amp; profit</span></div>
-      <div id="home-months" class="month-grid"></div>
+      <div class="ctitle">Monthly History <span style="font-weight:400;font-size:10px;color:var(--tx2);text-transform:none;letter-spacing:0">— tap a month to see its transactions</span></div>
+      <div id="home-months"></div>
     </div>
   </div>
 
@@ -900,24 +900,18 @@ function renderHome(){
   document.getElementById('home-stats').innerHTML=
     statCard('Income · This Month',pkr(mInc),'i','💰')+
     statCard('Expenses · This Month',pkr(mExp),'e','💸')+
-    statCard('Net · This Month',spkr(mInc-mExp),(mInc-mExp)>=0?'i':'e','🎯',(mInc-mExp)>=0?'profit 🎉':'loss')+
-    statCard('All-Time Net',spkr(allInc-allExp),(allInc-allExp)>=0?'i':'e','📊','income − expenses');
+    statCard('Income · All Time',pkr(allInc),'i','📊')+
+    statCard('Expenses · All Time',pkr(allExp),'e','📉');
   renderDashTabs();
-  // past months grid (everything before the current month)
+  // past months (everything before the current month) — rendered as history-style rows
   const months=[...new Set(money.map(t=>t.date.slice(0,7)))].filter(m=>m!==pfx).sort((a,b)=>b.localeCompare(a));
   const el=document.getElementById('home-months');
-  if(!months.length){ el.innerHTML=`<div class="empty"><div class="empty-e">📅</div><div class="empty-t">No past months yet</div><div class="empty-s">Once a month ends it shows up here as a card you can tap</div></div>`; return; }
+  if(!months.length){ el.innerHTML=`<div class="empty"><div class="empty-e">📅</div><div class="empty-t">No past months yet</div><div class="empty-s">Once a month ends it will show up here — tap to see its transactions</div></div>`; return; }
   el.innerHTML=months.map(m=>{
     const inc=money.filter(t=>t.type==='income'&&t.date.startsWith(m)).reduce((s,t)=>s+t.amt,0);
     const exp=money.filter(t=>t.type==='expense'&&t.date.startsWith(m)).reduce((s,t)=>s+t.amt,0);
-    const n=inc-exp;
     const [yy,mm]=m.split('-');
-    return `<div class="month-card" onclick="openMonth('${m}')">
-      <div class="month-card-name">${MONTH_NAMES[Number(mm)-1]} ${yy}</div>
-      <div class="month-card-row"><span style="color:var(--tx2)">Income</span><span style="color:var(--inc)">${pkr(inc)}</span></div>
-      <div class="month-card-row"><span style="color:var(--tx2)">Expense</span><span style="color:var(--exp)">${pkr(exp)}</span></div>
-      <div class="month-card-net" style="color:${n>=0?'var(--inc)':'var(--exp)'}">${spkr(n)}</div>
-    </div>`;
+    return histRow(`${MONTH_NAMES[Number(mm)-1]} ${yy}`, {inc,exp,net:inc-exp}, `openMonth('${m}')`, true);
   }).join('');
 }
 // month detail modal
@@ -930,8 +924,7 @@ function openMonth(pfx){
   const n=inc-exp;
   document.getElementById('month-modal-stats').innerHTML=
     `<div class="mstat"><div class="mstat-lbl">Income</div><div class="mstat-val" style="color:var(--inc)">${pkr(inc)}</div></div>
-     <div class="mstat"><div class="mstat-lbl">Expense</div><div class="mstat-val" style="color:var(--exp)">${pkr(exp)}</div></div>
-     <div class="mstat"><div class="mstat-lbl">Net</div><div class="mstat-val" style="color:${n>=0?'var(--inc)':'var(--exp)'}">${spkr(n)}</div></div>`;
+     <div class="mstat"><div class="mstat-lbl">Expense</div><div class="mstat-val" style="color:var(--exp)">${pkr(exp)}</div></div>`;
   document.getElementById('month-modal-list').innerHTML=list.length?renderGroup(sortTxs(list),txRow):`<div class="empty"><div class="empty-t">No transactions</div></div>`;
   document.getElementById('month-modal').style.display='flex';
 }
@@ -955,8 +948,8 @@ function ledgerStats(list,statId){
   document.getElementById(statId).innerHTML=
     statCard('Income · Month',pkr(mInc),'i','💰')+
     statCard('Expenses · Month',pkr(mExp),'e','💸')+
-    statCard('Net · Month',spkr(mInc-mExp),(mInc-mExp)>=0?'i':'e','🎯')+
-    statCard('Net · All Time',spkr(inc-exp),(inc-exp)>=0?'i':'e','📊');
+    statCard('Income · All Time',pkr(inc),'i','📊')+
+    statCard('Expenses · All Time',pkr(exp),'e','📉');
 }
 function renderLedger(tab){
   const def=getAllTabs().find(t=>t.id===tab)||{icon:'',name:tab};
@@ -973,13 +966,12 @@ function catCardsHtml(tab,list){
   list.forEach(t=>{ const k=t.cat||'—'; if(!map[k]) map[k]={inc:0,exp:0}; if(t.type==='income') map[k].inc+=t.amt; else map[k].exp+=t.amt; });
   const cats=Object.keys(map).sort((a,b)=>(map[b].inc+map[b].exp)-(map[a].inc+map[a].exp));
   return cats.map(cat=>{
-    const m=map[cat],n=m.inc-m.exp;
+    const m=map[cat];
     const incRow=m.inc?`<div class="month-card-row"><span style="color:var(--tx2)">Income</span><span style="color:var(--inc)">${pkr(m.inc)}</span></div>`:'';
     const expRow=m.exp?`<div class="month-card-row"><span style="color:var(--tx2)">Expense</span><span style="color:var(--exp)">${pkr(m.exp)}</span></div>`:'';
     return `<div class="month-card" onclick="openCatHist('${tab}','${cat.replace(/'/g,"\\'")}')">
       <div class="month-card-name">${emojiOf(cat,tab)} ${cat}</div>
       ${incRow}${expRow}
-      <div class="month-card-net" style="color:${n>=0?'var(--inc)':'var(--exp)'}">${spkr(n)}</div>
     </div>`;
   }).join('');
 }
@@ -995,25 +987,22 @@ function renderDashTabs(){
   const crumb=document.getElementById('dash-crumb');
   if(dashTab===null){
     crumb.innerHTML=`<div class="hc cur">📂 All Tabs</div>`;
-    const cards=visibleTabs().filter(t=>isLedgerTab(t.id)).map(tb=>{
-      const list=txs.filter(t=>t.tab===tb.id&&(t.type==='income'||t.type==='expense'));
-      const inc=list.filter(t=>t.type==='income').reduce((s,t)=>s+t.amt,0);
-      const exp=list.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amt,0);
-      const n=inc-exp;
-      const incRow=inc?`<div class="month-card-row"><span style="color:var(--tx2)">Income</span><span style="color:var(--inc)">${pkr(inc)}</span></div>`:'';
-      const expRow=exp?`<div class="month-card-row"><span style="color:var(--tx2)">Expense</span><span style="color:var(--exp)">${pkr(exp)}</span></div>`:'';
-      return `<div class="month-card" onclick="dashGo('${tb.id}')">
-        <div class="month-card-name">${tb.icon} ${tb.name}</div>
-        ${incRow}${expRow}
-        <div class="month-card-net" style="color:${n>=0?'var(--inc)':'var(--exp)'}">${spkr(n)}</div>
-      </div>`;
+    const tabs=visibleTabs().filter(t=>isLedgerTab(t.id));
+    const rows=tabs.map(tb=>{
+      const inc=txs.filter(t=>t.tab===tb.id&&t.type==='income').reduce((s,t)=>s+t.amt,0);
+      const exp=txs.filter(t=>t.tab===tb.id&&t.type==='expense').reduce((s,t)=>s+t.amt,0);
+      return histRow(`${tb.icon} ${tb.name}`, {inc,exp,net:inc-exp}, `dashGo('${tb.id}')`, true);
     }).join('');
-    grid.innerHTML=cards||`<div class="empty" style="grid-column:1/-1"><div class="empty-e">📂</div><div class="empty-t">No tabs with data yet</div></div>`;
+    grid.innerHTML=rows||`<div class="empty"><div class="empty-e">📂</div><div class="empty-t">No tabs with data yet</div></div>`;
   } else {
     const def=getAllTabs().find(t=>t.id===dashTab)||{icon:'',name:dashTab};
     crumb.innerHTML=`<div class="hc" onclick="dashGo(null)">📂 All Tabs</div><span class="hc-sep">›</span><div class="hc cur">${def.icon} ${def.name}</div>`;
     const list=txs.filter(t=>t.tab===dashTab&&(t.type==='income'||t.type==='expense'));
-    grid.innerHTML=catCardsHtml(dashTab,list)||`<div class="empty" style="grid-column:1/-1"><div class="empty-e">🗂️</div><div class="empty-t">No categories yet</div></div>`;
+    const map={};
+    list.forEach(t=>{ const k=t.cat||'—'; if(!map[k]) map[k]={inc:0,exp:0}; if(t.type==='income') map[k].inc+=t.amt; else map[k].exp+=t.amt; });
+    const cats=Object.keys(map).sort((a,b)=>(map[b].inc+map[b].exp)-(map[a].inc+map[a].exp));
+    const rows=cats.map(c=>{ const m=map[c]; return histRow(`${emojiOf(c,dashTab)} ${c}`, {inc:m.inc,exp:m.exp,net:m.inc-m.exp}, `openCatHist('${dashTab}','${c.replace(/'/g,"\\'")}')`, true); }).join('');
+    grid.innerHTML=rows||`<div class="empty"><div class="empty-e">🗂️</div><div class="empty-t">No categories yet</div></div>`;
   }
 }
 function openCatHist(tab,cat){
@@ -1026,8 +1015,7 @@ function openCatHist(tab,cat){
   const n=inc-exp;
   document.getElementById('cathist-stats').innerHTML=
     `<div class="mstat"><div class="mstat-lbl">Income</div><div class="mstat-val" style="color:var(--inc)">${pkr(inc)}</div></div>
-     <div class="mstat"><div class="mstat-lbl">Expense</div><div class="mstat-val" style="color:var(--exp)">${pkr(exp)}</div></div>
-     <div class="mstat"><div class="mstat-lbl">Net</div><div class="mstat-val" style="color:${n>=0?'var(--inc)':'var(--exp)'}">${spkr(n)}</div></div>`;
+     <div class="mstat"><div class="mstat-lbl">Expense</div><div class="mstat-val" style="color:var(--exp)">${pkr(exp)}</div></div>`;
   document.getElementById('cathist-list').innerHTML=list.length?renderGroup(sortTxs(list),txRow):`<div class="empty"><div class="empty-t">No transactions</div></div>`;
   document.getElementById('cat-hist-modal').style.display='flex';
 }
@@ -1093,7 +1081,6 @@ function histRow(label, tot, onclick, drill){
     <div class="hist-figs">
       <div class="hist-fig"><div class="hist-fig-lbl">Income</div><div class="hist-fig-val" style="color:var(--inc)">${pkr(tot.inc)}</div></div>
       <div class="hist-fig"><div class="hist-fig-lbl">Expense</div><div class="hist-fig-val" style="color:var(--exp)">${pkr(tot.exp)}</div></div>
-      <div class="hist-fig"><div class="hist-fig-lbl">Net</div><div class="hist-fig-val" style="color:${tot.net>=0?'var(--inc)':'var(--exp)'}">${tot.net>=0?'+':'-'}${pkr(Math.abs(tot.net))}</div></div>
     </div>
     ${drill?'<div class="hist-arrow">›</div>':''}
   </div>`;
@@ -1117,7 +1104,6 @@ function renderHistory(){
   document.getElementById('hist-summary').innerHTML=`
     <div class="stat-card"><div class="sc-top"><div class="sc-label">Income</div><div class="sc-ico">💰</div></div><div class="sc-val i">${pkr(tot.inc)}</div><div class="sc-sub">${scopeLbl}</div></div>
     <div class="stat-card"><div class="sc-top"><div class="sc-label">Expenses</div><div class="sc-ico">💸</div></div><div class="sc-val e">${pkr(tot.exp)}</div><div class="sc-sub">${scopeLbl}</div></div>
-    <div class="stat-card"><div class="sc-top"><div class="sc-label">Profit / Net</div><div class="sc-ico">🎯</div></div><div class="sc-val ${tot.net>=0?'i':'e'}">${tot.net>=0?'+':'-'}PKR ${Math.abs(Math.round(tot.net)).toLocaleString('en-PK')}</div><div class="sc-sub">${tot.net>=0?'profit 🎉':'loss'}</div></div>
     <div class="stat-card"><div class="sc-top"><div class="sc-label">Entries</div><div class="sc-ico">📋</div></div><div class="sc-val p">${entries}</div><div class="sc-sub">income & expense</div></div>`;
   // drill-down list
   if(day!==null) renderHistDay(day);
