@@ -1322,16 +1322,8 @@ function renderHistCats(scopeFn){
     const def=getAllTabs().find(t=>t.id===id)||{icon:'',name:id};
     const list=txs.filter(t=>t.tab===id&&isIE(t)&&scopeFn(t));
     if(!list.length) return;
-    const map={};
-    list.forEach(t=>{ const k=t.cat||'—'; if(!map[k]) map[k]={inc:0,exp:0}; if(t.type==='income') map[k].inc+=t.amt; else map[k].exp+=t.amt; });
-    const rows=Object.keys(map).sort((a,b)=>(map[b].inc+map[b].exp)-(map[a].inc+map[a].exp)).map(cat=>{
-      const m=map[cat];
-      const inc=m.inc?`<span style="color:var(--inc)">${pkr(m.inc)}</span>`:'';
-      const exp=m.exp?`<span style="color:var(--exp)">${pkr(m.exp)}</span>`:'';
-      const sep=(m.inc&&m.exp)?' · ':'';
-      return `<div class="hist-cat-row" onclick="openCatHist('${id}','${cat.replace(/'/g,"\\'")}')"><div class="hist-cat-ico">${emojiOf(cat,id)}</div><div class="hist-cat-name">${cat}</div><div class="hist-cat-amt">${inc}${sep}${exp}</div><div class="hist-cat-arrow">›</div></div>`;
-    }).join('');
-    html+=`<div class="hist-cat-grp">${def.icon} ${def.name}</div>${rows}`;
+    const boxes=catCardsHtml(id,list);
+    html+=`<div class="hist-cat-grp">${def.icon} ${def.name}</div><div class="month-grid">${boxes}</div>`;
   });
   document.getElementById('hist-cats').innerHTML=html||`<div class="empty"><div class="empty-e">🗂️</div><div class="empty-t">No category data in this period</div></div>`;
 }
