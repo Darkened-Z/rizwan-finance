@@ -1277,12 +1277,13 @@ function histGo(year,month,day){
   renderHistory();
 }
 function emptyHist(){ return `<div class="empty"><div class="empty-e">📅</div><div class="empty-t">No history here yet</div><div class="empty-s">Add some income or expenses to see them grouped by date</div></div>`; }
-function histRow(label, tot, onclick, drill){
+function histRow(label, tot, onclick, drill, opts){
+  opts=opts||{};
   const click=drill?`onclick="${onclick}"`:'';
+  const incFig=opts.hideInc?'':`<div class="hist-fig"><div class="hist-fig-lbl">Income</div><div class="hist-fig-val" style="color:var(--inc)">${pkr(tot.inc)}</div></div>`;
   return `<div class="hist-row ${drill?'':'nodrill'}" ${click}>
     <div class="hist-label">${label}</div>
-    <div class="hist-figs">
-      <div class="hist-fig"><div class="hist-fig-lbl">Income</div><div class="hist-fig-val" style="color:var(--inc)">${pkr(tot.inc)}</div></div>
+    <div class="hist-figs">${incFig}
       <div class="hist-fig"><div class="hist-fig-lbl">Expense</div><div class="hist-fig-val" style="color:var(--exp)">${pkr(tot.exp)}</div></div>
     </div>
     ${drill?'<div class="hist-arrow">›</div>':''}
@@ -1332,7 +1333,7 @@ function renderHistYears(){
   document.getElementById('hist-list-title').textContent='By Year — tap to open';
   const years=[...new Set(txs.filter(isIE).map(t=>t.date.slice(0,4)))].sort((a,b)=>b.localeCompare(a));
   document.getElementById('hist-list').innerHTML=years.length
-    ? years.map(y=>histRow('📆 '+y, histTotals(t=>t.date.slice(0,4)===y), `histGo(${Number(y)})`, true)).join('')
+    ? years.map(y=>histRow('📆 '+y, histTotals(t=>t.date.slice(0,4)===y), `histGo(${Number(y)})`, true, {hideInc:true})).join('')
     : emptyHist();
 }
 function renderHistMonths(year){
@@ -1340,7 +1341,7 @@ function renderHistMonths(year){
   const ys=String(year);
   const months=[...new Set(txs.filter(t=>isIE(t)&&t.date.slice(0,4)===ys).map(t=>Number(t.date.slice(5,7))-1))].sort((a,b)=>b-a);
   document.getElementById('hist-list').innerHTML=months.length
-    ? months.map(m=>histRow(MONTH_NAMES[m], histTotals(t=>t.date.slice(0,7)===`${ys}-${String(m+1).padStart(2,'0')}`), `histGo(${year},${m})`, true)).join('')
+    ? months.map(m=>histRow(MONTH_NAMES[m], histTotals(t=>t.date.slice(0,7)===`${ys}-${String(m+1).padStart(2,'0')}`), `histGo(${year},${m})`, true, {hideInc:true})).join('')
     : emptyHist();
 }
 function renderHistDays(year,month){
@@ -1348,7 +1349,7 @@ function renderHistDays(year,month){
   document.getElementById('hist-list-title').textContent=`${MONTH_NAMES[month]} ${year} — By Day`;
   const days=[...new Set(txs.filter(t=>isIE(t)&&t.date.slice(0,7)===pfx).map(t=>t.date))].sort((a,b)=>b.localeCompare(a));
   document.getElementById('hist-list').innerHTML=days.length
-    ? days.map(ds=>histRow(`${Number(ds.slice(8,10))} <span style="font-weight:700;font-size:11px;color:var(--tx)">${dayName(ds)}</span>`, histTotals(t=>t.date===ds), `histGo(${year},${month},'${ds}')`, true)).join('')
+    ? days.map(ds=>histRow(`${Number(ds.slice(8,10))} <span style="font-weight:700;font-size:11px;color:var(--tx)">${dayName(ds)}</span>`, histTotals(t=>t.date===ds), `histGo(${year},${month},'${ds}')`, true, {hideInc:true})).join('')
     : emptyHist();
 }
 function renderHistDay(ds){
