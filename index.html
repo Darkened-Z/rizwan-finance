@@ -206,6 +206,8 @@ input,select{font-family:'Inter',sans-serif}
 .fi,.fs{width:100%;padding:11px 14px;background:var(--sf2);border:1.5px solid var(--bd);border-radius:11px;color:var(--tx);font-size:13px;font-weight:500;outline:none;transition:all .2s}
 .fi::placeholder{color:var(--tx3)}.fi:focus,.fs:focus{border-color:var(--cyan);background:var(--sf3)}
 .fs option{background:var(--sf2);color:var(--tx)}
+.modal-err{background:rgba(255,75,110,.1);border:1px solid var(--exp);color:var(--exp);border-radius:10px;padding:9px 12px;font-size:12px;font-weight:700;margin-top:2px;display:none}
+.modal-err.on{display:block}
 .modal-btn{width:100%;padding:13px;background:var(--cyan);color:#0B1426;border-radius:12px;font-size:14px;font-weight:800;margin-top:6px;cursor:pointer;border:none;transition:background .2s;letter-spacing:-.2px}
 .modal-btn:hover{background:var(--cyan2)}
 
@@ -388,8 +390,10 @@ input,select{font-family:'Inter',sans-serif}
 /* HISTORY — BY CATEGORY */
 .hist-cat-grp{font-size:10px;font-weight:800;color:var(--tx2);text-transform:uppercase;letter-spacing:1px;margin:16px 0 6px;padding-top:12px;border-top:1px solid var(--bd)}
 .hist-cat-grp:first-child{border-top:none;padding-top:0;margin-top:0}
-.hist-cat-row{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;transition:background .15s}
-.hist-cat-row:hover{background:var(--sf2)}
+.hist-cat-row{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;transition:all .15s;cursor:pointer;border:1px solid transparent}
+.hist-cat-row:hover{background:var(--sf2);border-color:var(--cyan)}
+.hist-cat-arrow{color:var(--tx3);font-size:16px;font-weight:800;margin-left:4px;transition:color .15s,transform .15s}
+.hist-cat-row:hover .hist-cat-arrow{color:var(--cyan);transform:translateX(3px)}
 .hist-cat-ico{font-size:16px;width:26px;text-align:center;flex-shrink:0}
 .hist-cat-name{flex:1;font-size:13px;font-weight:700;color:var(--tx);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hist-cat-count{font-size:10px;color:var(--tx3);font-weight:600;margin-left:6px}
@@ -672,6 +676,7 @@ input,select{font-family:'Inter',sans-serif}
       <div><label class="fl">Date</label><input type="date" class="fi" id="m-date"></div>
       <div><label class="fl">Time</label><input type="time" class="fi" id="m-time"></div>
     </div>
+    <div class="modal-err" id="m-err"></div>
     <button class="modal-btn" onclick="submitEntry()">Save</button>
   </div>
 </div>
@@ -1325,7 +1330,7 @@ function renderHistCats(scopeFn){
       const inc=m.inc?`<span style="color:var(--inc)">+${pkr(m.inc)}</span>`:'';
       const exp=m.exp?`<span style="color:var(--exp)">-${pkr(m.exp)}</span>`:'';
       const sep=(m.inc&&m.exp)?' · ':'';
-      return `<div class="hist-cat-row"><div class="hist-cat-ico">${emojiOf(cat,id)}</div><div class="hist-cat-name">${cat}</div><div class="hist-cat-amt">${inc}${sep}${exp}</div></div>`;
+      return `<div class="hist-cat-row" onclick="openCatHist('${id}','${cat.replace(/'/g,"\\'")}')"><div class="hist-cat-ico">${emojiOf(cat,id)}</div><div class="hist-cat-name">${cat}</div><div class="hist-cat-amt">${inc}${sep}${exp}</div><div class="hist-cat-arrow">›</div></div>`;
     }).join('');
     html+=`<div class="hist-cat-grp">${def.icon} ${def.name}</div>${rows}`;
   });
@@ -1503,16 +1508,29 @@ const TYPE_BTN={income:'m-ti',expense:'m-te',lent:'m-tl',borrowed:'m-tb'};
 function setMType(type){ mType=type; document.querySelectorAll('#m-type-row .topt,#m-lent-row .topt').forEach(b=>b.classList.remove('on')); document.getElementById(TYPE_BTN[type])?.classList.add('on'); if(mTab&&mTab!=='lent') fillCatOpts(getCats(mTab)); }
 function setMDomain(d){ mTab=d; document.querySelectorAll('#m-domain-row .topt').forEach(b=>b.classList.remove('on')); document.getElementById(d==='self'?'m-ds':'m-db')?.classList.add('on'); fillCatOpts(getCats(d)); }
 function fillCatOpts(cats){ document.getElementById('m-cat').innerHTML='<option value="">Select…</option>'+cats.map(c=>`<option value="${c.n}">${c.e} ${c.n}</option>`).join(''); }
-function closeModal(){ document.getElementById('modal').style.display='none'; editId=null; }
+function closeModal(){ mClearErr(); if(document.activeElement&&document.activeElement.blur) document.activeElement.blur(); document.getElementById('modal').style.display='none'; editId=null; }
+function mErr(msg){ const e=document.getElementById('m-err'); if(!e) return toast(msg); e.textContent=msg; e.classList.add('on'); toast(msg); }
+function mClearErr(){ const e=document.getElementById('m-err'); if(e){ e.textContent=''; e.classList.remove('on'); } }
 function submitEntry(){
+  mClearErr();
   const amt=parseFloat(document.getElementById('m-amt').value),cat=document.getElementById('m-cat').value,desc=document.getElementById('m-desc').value.trim(),date=document.getElementById('m-date').value,time=document.getElementById('m-time').value,person=document.getElementById('m-person').value.trim();
-  if(!amt||amt<=0) return toast('⚠️ Enter an amount');
-  if(!date) return toast('⚠️ Pick a date');
-  if(mTab==='lent'){ if(!person) return toast('⚠️ Enter person name'); } else if(!cat) return toast('⚠️ Select a category');
+  if(!amt||amt<=0) return mErr('⚠️ Enter an amount');
+  if(!date)         return mErr('⚠️ Pick a date');
+  if(mTab==='lent'){ if(!person) return mErr('⚠️ Enter person name'); } else if(!cat) return mErr('⚠️ Select a category');
   const type=mType;
-  if(editId){ const i=txs.findIndex(x=>String(x.id)===String(editId)); if(i!==-1){ txs[i]={...txs[i],tab:mTab,type,amt,cat:cat||'',desc,date,time,person:person||''}; save(); if(sbReady) dbWrite(txs[i]); toast('✅ Updated!'); } }
-  else { const tx={id:Date.now().toString(),tab:mTab,type,amt,cat:cat||'',desc,date,time,person:person||'',returned:false,returnedDate:''}; txs.push(tx); save(); if(sbReady) dbWrite(tx); if(type==='income') confetti(); toast(type==='income'?'🎉 Income added!':'✅ Saved!'); }
-  closeModal(); refresh();
+  try{
+    if(editId){
+      const i=txs.findIndex(x=>String(x.id)===String(editId));
+      if(i===-1){ toast('⚠️ Entry no longer exists — closing'); }
+      else { txs[i]={...txs[i],tab:mTab,type,amt,cat:cat||'',desc,date,time,person:person||''}; save(); if(sbReady) dbWrite(txs[i]); toast('✅ Updated!'); }
+    } else {
+      const tx={id:Date.now().toString(),tab:mTab,type,amt,cat:cat||'',desc,date,time,person:person||'',returned:false,returnedDate:''};
+      txs.push(tx); save(); if(sbReady) dbWrite(tx);
+      if(type==='income') try{confetti();}catch(e){}
+      toast(type==='income'?'🎉 Income added!':'✅ Saved!');
+    }
+  } catch(e){ console.error('save failed',e); toast('⚠️ Save failed — try again'); }
+  finally { closeModal(); refresh(); }
 }
 function delTx(id){ if(!confirm('Delete this entry?')) return; const sid=String(id); deletedIds.add(sid); localStorage.setItem('rfq_del',JSON.stringify([...deletedIds])); pushConfig('deleted_ids',[...deletedIds]); txs=txs.filter(t=>String(t.id)!==sid); save(); if(sbReady) dbDelete(sid); refresh(); toast('🗑️ Deleted!'); }
 
