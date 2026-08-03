@@ -1434,7 +1434,27 @@ let editCatIdx=null,editCatTab=null;
 function renderCatManage(){ const el=document.getElementById('cats-manage-list'); if(!el) return; const tabId=document.getElementById('cat-tab-select')?.value||'self'; const cats=getCats(tabId); if(!cats.length){ el.innerHTML=`<div style="color:var(--tx2);font-size:12px;padding:8px 0">No categories yet</div>`; return; } el.innerHTML=cats.map((c,i)=>`<div class="manage-row"><div class="manage-ico">${c.e}</div><div class="manage-name" style="flex:1">${c.n}</div><div class="manage-acts"><button class="mbtn edit" onclick="openCatModal(${i})">✏️</button><button class="mbtn del" onclick="deleteCat(${i})">🗑️</button></div></div>`).join(''); }
 function openCatModal(idx){ editCatIdx=(idx===undefined||idx===null)?null:idx; editCatTab=document.getElementById('cat-tab-select')?.value||'self'; const cat=(editCatIdx!==null)?getCats(editCatTab)[editCatIdx]:null; document.getElementById('cat-modal-title').textContent=cat?'Edit Category':'New Category'; document.getElementById('cat-icon').value=cat?cat.e:''; document.getElementById('cat-name').value=cat?cat.n:''; document.getElementById('cat-modal').style.display='flex'; }
 function closeCatModal(){ document.getElementById('cat-modal').style.display='none'; editCatIdx=null; editCatTab=null; }
-function saveCat(){ const icon=document.getElementById('cat-icon').value.trim()||'💡',name=document.getElementById('cat-name').value.trim(); if(!name) return toast('⚠️ Enter a category name'); const tabId=editCatTab||document.getElementById('cat-tab-select')?.value||'self'; if(!sett.userCats[tabId]||!sett.userCats[tabId].length) sett.userCats[tabId]=[...(DEFAULT_CATS[tabId]||[])]; if(editCatIdx!==null&&editCatIdx>=0) sett.userCats[tabId][editCatIdx]={e:icon,n:name}; else sett.userCats[tabId].push({e:icon,n:name}); save(); pushConfigNow('settings',sett); closeCatModal(); renderCatManage(); toast(editCatIdx!==null?'✅ Category updated!':'✅ Category added!'); }
+function saveCat(){
+  const icon=document.getElementById('cat-icon').value.trim()||'💡',name=document.getElementById('cat-name').value.trim();
+  if(!name) return toast('⚠️ Enter a category name');
+  const tabId=editCatTab||document.getElementById('cat-tab-select')?.value||'self';
+  if(!sett.userCats[tabId]||!sett.userCats[tabId].length) sett.userCats[tabId]=[...(DEFAULT_CATS[tabId]||[])];
+  if(editCatIdx!==null&&editCatIdx>=0){
+    const oldName=sett.userCats[tabId][editCatIdx]?.n;
+    sett.userCats[tabId][editCatIdx]={e:icon,n:name};
+    if(oldName&&oldName!==name){
+      // migrate every tx (and recurring) that used the old name in this tab
+      let migrated=0;
+      txs.forEach(t=>{ if(t.tab===tabId&&t.cat===oldName){ t.cat=name; if(sbReady) dbWrite(t); migrated++; } });
+      (sett.recurring||[]).forEach(r=>{ if(r.tab===tabId&&r.cat===oldName) r.cat=name; });
+      if(migrated) toast(`✅ Renamed — ${migrated} entr${migrated===1?'y':'ies'} moved to "${name}"`);
+    }
+  } else {
+    sett.userCats[tabId].push({e:icon,n:name});
+  }
+  save(); pushConfigNow('settings',sett); closeCatModal(); renderCatManage(); refresh();
+  if(!(editCatIdx!==null&&editCatIdx>=0)) toast('✅ Category added!');
+}
 function deleteCat(idx){ const tabId=document.getElementById('cat-tab-select')?.value||'self'; const cats=getCats(tabId); if(!confirm(`Delete "${cats[idx].n}"?`)) return; if(!sett.userCats[tabId]||!sett.userCats[tabId].length) sett.userCats[tabId]=[...(DEFAULT_CATS[tabId]||[])]; sett.userCats[tabId].splice(idx,1); save(); pushConfigNow('settings',sett); renderCatManage(); toast('🗑️ Category removed'); }
 
 // ── ADD / EDIT MODAL ──
