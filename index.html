@@ -483,13 +483,13 @@ input,select{font-family:'Inter',sans-serif}
 
   <!-- LEDGER (Self / Business / custom tabs) -->
   <div id="pg-ledger" class="page">
-    <div class="g4" id="ledger-stats"></div>
+    <div class="g2" id="ledger-stats"></div>
     <div class="card mb14">
-      <div class="ctitle">Categories <span style="font-weight:400;font-size:10px;color:var(--tx2);text-transform:none;letter-spacing:0">— tap a category for its history</span></div>
+      <div class="ctitle">Categories · This Month <span style="font-weight:400;font-size:10px;color:var(--tx2);text-transform:none;letter-spacing:0">— tap a category for its history</span></div>
       <div id="ledger-cat-grid" class="month-grid"></div>
     </div>
-    <div class="card">
-      <div class="ctitle" id="ledger-title">Income &amp; Expenses
+    <div class="card mb14">
+      <div class="ctitle" id="ledger-title">This Month
         <button class="mini-add" onclick="openAddModal(curPage)">＋ Add</button>
       </div>
       <div class="tx-toolbar">
@@ -498,13 +498,17 @@ input,select{font-family:'Inter',sans-serif}
       </div>
       <div id="ledger-list"></div>
     </div>
+    <div class="card">
+      <div class="ctitle">Previous Months <span style="font-weight:400;font-size:10px;color:var(--tx2);text-transform:none;letter-spacing:0">— tap for that month's entries</span></div>
+      <div id="ledger-months"></div>
+    </div>
   </div>
 
   <!-- INCOME / EXPENSE (combined) -->
   <div id="pg-incexp" class="page">
-    <div class="g4" id="incexp-stats"></div>
-    <div class="card">
-      <div class="ctitle">💵 All Income &amp; Expenses <span style="font-weight:400;font-size:10px;color:var(--tx2);text-transform:none;letter-spacing:0">— Self + Business combined</span>
+    <div class="g2" id="incexp-stats"></div>
+    <div class="card mb14">
+      <div class="ctitle">💵 This Month <span style="font-weight:400;font-size:10px;color:var(--tx2);text-transform:none;letter-spacing:0">— every tab combined</span>
         <button class="mini-add" onclick="openAddModal('incexp')">＋ Add</button>
       </div>
       <div class="tx-toolbar">
@@ -512,6 +516,10 @@ input,select{font-family:'Inter',sans-serif}
         <div class="seg" id="incexp-seg"></div>
       </div>
       <div id="incexp-list"></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Previous Months <span style="font-weight:400;font-size:10px;color:var(--tx2);text-transform:none;letter-spacing:0">— tap for that month's entries</span></div>
+      <div id="incexp-months"></div>
     </div>
   </div>
 
@@ -1078,10 +1086,11 @@ function renderHome(){
   }).join('');
 }
 // month detail modal
-function openMonth(pfx){
+function openMonth(pfx, scope){
   const [yy,mm]=pfx.split('-');
-  document.getElementById('month-modal-title').textContent=MONTH_NAMES[Number(mm)-1]+' '+yy;
-  const list=Q.inMonth(pfx,Q.incExp());
+  const def=scope?getAllTabs().find(t=>t.id===scope):null;
+  document.getElementById('month-modal-title').textContent=(def?`${def.icon} ${def.name} · `:'')+MONTH_NAMES[Number(mm)-1]+' '+yy;
+  const list=Q.inMonth(pfx, scope?Q.incExp(Q.byTab(scope)):Q.incExp());
   const {inc,exp}=Q.totals(list);
   document.getElementById('month-modal-stats').innerHTML=
     `<div class="mstat"><div class="mstat-lbl">Income</div><div class="mstat-val" style="color:var(--inc)">${pkr(inc)}</div></div>
@@ -1103,21 +1112,33 @@ function setLedgerFilter(key,v){ ledgerFilter[key]=v; if(key==='incexp') renderI
 function ledgerStats(list,statId){
   const pfx=curMonthPfx();
   const {inc:mInc,exp:mExp}=Q.totals(Q.inMonth(pfx,list));
-  const {inc,exp}=Q.totals(list);
+  const monthLbl=new Date().toLocaleDateString('en',{month:'long',year:'numeric'});
   document.getElementById(statId).innerHTML=
-    statCard('Income · Month',pkr(mInc),'i','💰')+
-    statCard('Expenses · Month',pkr(mExp),'e','💸')+
-    statCard('Income · All Time',pkr(inc),'i','📊')+
-    statCard('Expenses · All Time',pkr(exp),'e','📉');
+    statCard('Income · '+monthLbl,pkr(mInc),'i','💰','this month')+
+    statCard('Expenses · '+monthLbl,pkr(mExp),'e','💸','this month');
+}
+// past-month rows for a filtered list; scope='self' | 'business' | '' (combined)
+function renderMonthRows(elId, list, scope){
+  const el=document.getElementById(elId); if(!el) return;
+  const pfx=curMonthPfx();
+  const months=[...new Set(list.map(t=>t.date.slice(0,7)))].filter(m=>m!==pfx).sort((a,b)=>b.localeCompare(a));
+  if(!months.length){ el.innerHTML=`<div class="empty"><div class="empty-e">📅</div><div class="empty-t">No past months yet</div></div>`; return; }
+  el.innerHTML=months.map(m=>{
+    const [yy,mm]=m.split('-');
+    const arg=scope?`'${m}','${scope}'`:`'${m}'`;
+    return histRow(`${MONTH_NAMES[Number(mm)-1]} ${yy}`, Q.totals(Q.inMonth(m,list)), `openMonth(${arg})`, true);
+  }).join('');
 }
 function renderLedger(tab){
   const def=getAllTabs().find(t=>t.id===tab)||{icon:'',name:tab};
-  document.getElementById('ledger-title').innerHTML=`${def.icon} ${def.name} — Income &amp; Expenses <button class="mini-add" onclick="openAddModal('${tab}')">＋ Add</button>`;
+  document.getElementById('ledger-title').innerHTML=`${def.icon} ${def.name} — This Month <button class="mini-add" onclick="openAddModal('${tab}')">＋ Add</button>`;
   const list=Q.incExp(Q.byTab(tab));
+  const pfx=curMonthPfx();
   ledgerStats(list,'ledger-stats');
-  renderLedgerCats(tab,list);
+  renderLedgerCats(tab,Q.inMonth(pfx,list));                 // category cards for THIS MONTH
   renderSeg('ledger-seg',tab);
   renderLedgerList(tab);
+  renderMonthRows('ledger-months', list, tab);              // past months as tappable rows
 }
 // shared: build category cards HTML (one box per category, like the monthly cards)
 function catCardsHtml(tab,list){
@@ -1178,24 +1199,28 @@ function renderLedgerList(tab){
   const f=ledgerFilter[tab]||'all';
   const q=(document.getElementById('ledger-search')?.value||'').toLowerCase();
   let list=Q.incExp(Q.byTab(tab));
+  if(!q) list=Q.inMonth(curMonthPfx(),list);                 // no search → this month only
   if(f!=='all') list=list.filter(t=>t.type===f);
   if(q) list=list.filter(t=>txSearchText(t).includes(q));
-  document.getElementById('ledger-list').innerHTML=list.length?renderGroup(sortTxs(list),txRow):`<div class="empty"><div class="empty-e">📭</div><div class="empty-t">No entries yet</div><div class="empty-s">Tap ＋ Add to record income or an expense</div></div>`;
+  document.getElementById('ledger-list').innerHTML=list.length?renderGroup(sortTxs(list),txRow):`<div class="empty"><div class="empty-e">📭</div><div class="empty-t">${q?'No matches':'No entries this month'}</div><div class="empty-s">${q?'Try a different search':'Tap ＋ Add or check a previous month below'}</div></div>`;
 }
 
 // ── INCOME / EXPENSE (combined — every ledger tab) ──
 function renderIncexp(){
-  ledgerStats(Q.incExp(),'incexp-stats');
+  const all=Q.incExp();
+  ledgerStats(all,'incexp-stats');
   renderSeg('incexp-seg','incexp');
   renderIncexpList();
+  renderMonthRows('incexp-months', all, '');                 // combined, no tab scope
 }
 function renderIncexpList(){
   const f=ledgerFilter['incexp']||'all';
   const q=(document.getElementById('incexp-search')?.value||'').toLowerCase();
   let list=Q.incExp();
+  if(!q) list=Q.inMonth(curMonthPfx(),list);                 // no search → this month only
   if(f!=='all') list=list.filter(t=>t.type===f);
   if(q) list=list.filter(t=>txSearchText(t).includes(q));
-  document.getElementById('incexp-list').innerHTML=list.length?renderGroup(sortTxs(list),txRow):`<div class="empty"><div class="empty-e">💵</div><div class="empty-t">No income or expenses yet</div></div>`;
+  document.getElementById('incexp-list').innerHTML=list.length?renderGroup(sortTxs(list),txRow):`<div class="empty"><div class="empty-e">💵</div><div class="empty-t">${q?'No matches':'No entries this month'}</div></div>`;
 }
 
 // ── LENT ──
