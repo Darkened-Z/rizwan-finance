@@ -948,10 +948,10 @@ function renderGroup(list,fn){ if(!list.length) return ''; let html='',ld=''; li
 function txRow(t){
   const isInc=t.type==='income',isLent=t.type==='lent',isBor=t.type==='borrowed';
   const isLB=isLent||isBor;
-  let icoC='e',amtC='e',sign='-';
-  if(isInc){icoC='i';amtC='i';sign='+';}
-  if(isLent){icoC='l';amtC='l';sign='';}
-  if(isBor){icoC='b';amtC='b';sign='';}
+  let icoC='e',amtC='e',sign='';
+  if(isInc){icoC='i';amtC='i';}
+  if(isLent){icoC='l';amtC='l';}
+  if(isBor){icoC='b';amtC='b';}
   const emoji=isLB?'🤝':emojiOf(t.cat,t.tab);
   const retBadge=t.returned?`<span class="ret-badge">✓ Returned</span>`:'';
   const retBtn=isLB&&!t.returned?`<button class="ta ok" onclick="markReturned('${t.id}')" title="Mark returned">✓</button>`:'';
@@ -1017,8 +1017,7 @@ function renderRecurringList(){
   if(!list.length){ el.innerHTML=`<div style="color:var(--tx2);font-size:12px;padding:8px 0">None yet — tap ＋ New to add one.</div>`; return; }
   el.innerHTML=list.map(r=>{
     const def=getAllTabs().find(t=>t.id===r.tab)||{icon:'📁',name:r.tab};
-    const sign=r.type==='income'?'+':'-';
-    return `<div class="rec-row"><div class="rec-ico">${emojiOf(r.cat,r.tab)}</div><div class="rec-body"><div class="rec-name">${r.desc||r.cat||'—'}</div><div class="rec-meta">${def.icon} ${def.name} · ${r.cat||'—'} · day ${r.day}</div></div><div class="rec-amt" style="color:${r.type==='income'?'var(--inc)':'var(--exp)'}">${sign}${pkr(r.amt)}</div><div class="manage-acts"><button class="mbtn edit" onclick="openRecurring('${r.id}')">✏️</button><button class="mbtn del" onclick="deleteRecurring('${r.id}')">🗑️</button></div></div>`;
+    return `<div class="rec-row"><div class="rec-ico">${emojiOf(r.cat,r.tab)}</div><div class="rec-body"><div class="rec-name">${r.desc||r.cat||'—'}</div><div class="rec-meta">${def.icon} ${def.name} · ${r.cat||'—'} · day ${r.day}</div></div><div class="rec-amt" style="color:${r.type==='income'?'var(--inc)':'var(--exp)'}">${pkr(r.amt)}</div><div class="manage-acts"><button class="mbtn edit" onclick="openRecurring('${r.id}')">✏️</button><button class="mbtn del" onclick="deleteRecurring('${r.id}')">🗑️</button></div></div>`;
   }).join('');
 }
 let recEditId=null,recType='expense';
@@ -1327,8 +1326,8 @@ function renderHistCats(scopeFn){
     list.forEach(t=>{ const k=t.cat||'—'; if(!map[k]) map[k]={inc:0,exp:0}; if(t.type==='income') map[k].inc+=t.amt; else map[k].exp+=t.amt; });
     const rows=Object.keys(map).sort((a,b)=>(map[b].inc+map[b].exp)-(map[a].inc+map[a].exp)).map(cat=>{
       const m=map[cat];
-      const inc=m.inc?`<span style="color:var(--inc)">+${pkr(m.inc)}</span>`:'';
-      const exp=m.exp?`<span style="color:var(--exp)">-${pkr(m.exp)}</span>`:'';
+      const inc=m.inc?`<span style="color:var(--inc)">${pkr(m.inc)}</span>`:'';
+      const exp=m.exp?`<span style="color:var(--exp)">${pkr(m.exp)}</span>`:'';
       const sep=(m.inc&&m.exp)?' · ':'';
       return `<div class="hist-cat-row" onclick="openCatHist('${id}','${cat.replace(/'/g,"\\'")}')"><div class="hist-cat-ico">${emojiOf(cat,id)}</div><div class="hist-cat-name">${cat}</div><div class="hist-cat-amt">${inc}${sep}${exp}</div><div class="hist-cat-arrow">›</div></div>`;
     }).join('');
