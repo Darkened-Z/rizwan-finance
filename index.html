@@ -1086,19 +1086,43 @@ function renderHome(){
   }).join('');
 }
 // month detail modal
-function openMonth(pfx, scope){
+let mmView={pfx:null,scope:null,day:null};
+function openMonth(pfx, scope){ mmView={pfx,scope:scope||null,day:null}; document.getElementById('month-modal').style.display='flex'; renderMonthModal(); }
+function drillMonthDay(ds){ mmView.day=ds; renderMonthModal(); }
+function mmBack(){ mmView.day=null; renderMonthModal(); }
+function renderMonthModal(){
+  const {pfx,scope,day}=mmView;
   const [yy,mm]=pfx.split('-');
   const def=scope?getAllTabs().find(t=>t.id===scope):null;
-  document.getElementById('month-modal-title').textContent=(def?`${def.icon} ${def.name} · `:'')+MONTH_NAMES[Number(mm)-1]+' '+yy;
-  const list=Q.inMonth(pfx, scope?Q.incExp(Q.byTab(scope)):Q.incExp());
-  const {inc,exp}=Q.totals(list);
-  document.getElementById('month-modal-stats').innerHTML=
-    `<div class="mstat"><div class="mstat-lbl">Income</div><div class="mstat-val" style="color:var(--inc)">${pkr(inc)}</div></div>
-     <div class="mstat"><div class="mstat-lbl">Expense</div><div class="mstat-val" style="color:var(--exp)">${pkr(exp)}</div></div>`;
-  document.getElementById('month-modal-list').innerHTML=list.length?renderGroup(sortTxs(list),txRow):`<div class="empty"><div class="empty-t">No transactions</div></div>`;
-  document.getElementById('month-modal').style.display='flex';
+  const monthName=MONTH_NAMES[Number(mm)-1]+' '+yy;
+  document.getElementById('month-modal-title').textContent=(def?`${def.icon} ${def.name} · `:'')+monthName+(day?' · '+Number(day.slice(8,10))+' '+dayName(day):'');
+  const base=scope?Q.incExp(Q.byTab(scope)):Q.incExp();
+  const monthList=Q.inMonth(pfx,base);
+  if(day===null){
+    const {inc,exp}=Q.totals(monthList);
+    document.getElementById('month-modal-stats').innerHTML=
+      `<div class="mstat"><div class="mstat-lbl">Income</div><div class="mstat-val" style="color:var(--inc)">${pkr(inc)}</div></div>
+       <div class="mstat"><div class="mstat-lbl">Expense</div><div class="mstat-val" style="color:var(--exp)">${pkr(exp)}</div></div>`;
+    const days=[...new Set(monthList.map(t=>t.date))].sort((a,b)=>b.localeCompare(a));
+    const rows=days.map(ds=>histRow(
+      `${Number(ds.slice(8,10))} <span style="font-weight:700;font-size:11px;color:var(--tx)">${dayName(ds)}</span>`,
+      Q.totals(Q.onDate(ds,monthList)),
+      `drillMonthDay('${ds}')`,
+      true
+    )).join('');
+    document.getElementById('month-modal-list').innerHTML=`<div class="ctitle" style="margin-top:10px">Days · tap for that day's entries</div>`+(rows||`<div class="empty"><div class="empty-t">No transactions</div></div>`);
+  } else {
+    const dayList=Q.onDate(day,monthList);
+    const {inc,exp}=Q.totals(dayList);
+    document.getElementById('month-modal-stats').innerHTML=
+      `<div class="mstat"><div class="mstat-lbl">Income</div><div class="mstat-val" style="color:var(--inc)">${pkr(inc)}</div></div>
+       <div class="mstat"><div class="mstat-lbl">Expense</div><div class="mstat-val" style="color:var(--exp)">${pkr(exp)}</div></div>`;
+    document.getElementById('month-modal-list').innerHTML=
+      `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;margin-bottom:6px"><button onclick="mmBack()" style="background:var(--sf2);border:1px solid var(--bd);color:var(--tx);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer">← ${monthName}</button><div class="ctitle" style="margin:0">Transactions</div></div>`+
+      (dayList.length?renderGroup(sortTxs(dayList),txRow):`<div class="empty"><div class="empty-t">No transactions</div></div>`);
+  }
 }
-function closeMonthModal(){ document.getElementById('month-modal').style.display='none'; }
+function closeMonthModal(){ document.getElementById('month-modal').style.display='none'; mmView={pfx:null,scope:null,day:null}; }
 
 // ── LEDGER (Self / Business) ──
 let ledgerFilter={};
