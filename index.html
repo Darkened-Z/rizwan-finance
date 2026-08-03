@@ -452,7 +452,7 @@ input,select{font-family:'Inter',sans-serif}
 
   <!-- HOME (DASHBOARD) -->
   <div id="pg-home" class="page on">
-    <div class="g4" id="home-stats"></div>
+    <div class="g2" id="home-stats"></div>
     <div class="card mb14">
       <div class="ctitle">Tabs <span style="font-weight:400;font-size:10px;color:var(--tx2);text-transform:none;letter-spacing:0">— tap a tab, then a category for its history</span></div>
       <div class="hist-crumb" id="dash-crumb"></div>
@@ -910,14 +910,11 @@ function statCard(label,val,cls,ico,sub=''){
 function renderHome(){
   const pfx=curMonthPfx();
   const money=Q.incExp();
-  const monthMoney=Q.inMonth(pfx,money);
-  const {inc:mInc,exp:mExp}=Q.totals(monthMoney);
-  const {inc:allInc,exp:allExp}=Q.totals(money);
+  const {inc:mInc,exp:mExp}=Q.totals(Q.inMonth(pfx,money));
+  const monthLbl=new Date().toLocaleDateString('en',{month:'long',year:'numeric'});
   document.getElementById('home-stats').innerHTML=
-    statCard('Income · This Month',pkr(mInc),'i','💰')+
-    statCard('Expenses · This Month',pkr(mExp),'e','💸')+
-    statCard('Income · All Time',pkr(allInc),'i','📊')+
-    statCard('Expenses · All Time',pkr(allExp),'e','📉');
+    statCard('Income · '+monthLbl,pkr(mInc),'i','💰','this month')+
+    statCard('Expenses · '+monthLbl,pkr(mExp),'e','💸','this month');
   renderDashTabs();
   // past months (everything before the current month) — rendered as history-style rows
   const months=[...new Set(money.map(t=>t.date.slice(0,7)))].filter(m=>m!==pfx).sort((a,b)=>b.localeCompare(a));
