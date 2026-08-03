@@ -369,6 +369,22 @@ input,select{font-family:'Inter',sans-serif}
 /* TAB BADGE on tx rows */
 .tab-badge{font-size:10px;margin-left:5px;opacity:.65}
 
+/* QUICK-ADD CHIPS */
+.quick-wrap{margin-bottom:14px}
+.quick-label{font-size:10px;font-weight:800;color:var(--tx2);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:8px}
+.quick-chips{display:flex;flex-wrap:wrap;gap:8px}
+.qa-chip{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:20px;background:var(--sf2);border:1px solid var(--bd);color:var(--tx);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s}
+.qa-chip:hover{background:rgba(0,196,212,.12);border-color:var(--cyan);color:var(--cyan)}
+.qa-chip .qa-ico{font-size:15px}
+
+/* RECURRING LIST */
+.rec-row{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--sf2);border:1px solid var(--bd);border-radius:12px;margin-bottom:8px}
+.rec-row .rec-ico{font-size:20px;width:30px;text-align:center;flex-shrink:0}
+.rec-body{flex:1;min-width:0}
+.rec-name{font-size:13px;font-weight:800;color:var(--tx)}
+.rec-meta{font-size:11px;color:var(--tx2);margin-top:2px;font-weight:600}
+.rec-amt{font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;text-align:right;flex-shrink:0;padding-right:8px}
+
 /* HISTORY — BY CATEGORY */
 .hist-cat-grp{font-size:10px;font-weight:800;color:var(--tx2);text-transform:uppercase;letter-spacing:1px;margin:16px 0 6px;padding-top:12px;border-top:1px solid var(--bd)}
 .hist-cat-grp:first-child{border-top:none;padding-top:0;margin-top:0}
@@ -452,6 +468,7 @@ input,select{font-family:'Inter',sans-serif}
 
   <!-- HOME (DASHBOARD) -->
   <div id="pg-home" class="page on">
+    <div class="quick-wrap" id="home-quick"></div>
     <div class="g4" id="home-stats"></div>
     <div class="card mb14">
       <div class="ctitle">Tabs <span style="font-weight:400;font-size:10px;color:var(--tx2);text-transform:none;letter-spacing:0">— tap a tab, then a category for its history</span></div>
@@ -554,6 +571,13 @@ input,select{font-family:'Inter',sans-serif}
         </div>
         <div class="sett-desc" style="margin-bottom:10px">Add your own tabs, rename any tab, or hide / delete ones you don’t use.</div>
         <div id="tabs-manage-list"></div>
+      </div>
+      <div class="card mb14">
+        <div class="ctitle">Recurring Entries
+          <button onclick="openRecurring()" style="padding:6px 12px;background:var(--cyan);color:#0B1426;border-radius:8px;font-size:10px;font-weight:800;cursor:pointer;border:none">＋ New</button>
+        </div>
+        <div class="sett-desc" style="margin-bottom:10px">Auto-add these on the same day each month (salary, rent, subscriptions, etc.).</div>
+        <div id="rec-list"></div>
       </div>
       <div class="card mb14">
         <div class="ctitle">Manage Categories</div>
@@ -673,6 +697,31 @@ input,select{font-family:'Inter',sans-serif}
   </div>
 </div>
 
+<!-- RECURRING MODAL -->
+<div class="overlay" id="rec-modal" style="display:none" onclick="if(event.target===this)closeRecurring()">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="rec-modal-title">Recurring Entry</div>
+      <button class="modal-x" onclick="closeRecurring()">✕</button>
+    </div>
+    <div class="type-row" style="display:grid">
+      <button class="topt i" id="rec-ti" onclick="setRecType('income')">⬆️ Income</button>
+      <button class="topt e" id="rec-te" onclick="setRecType('expense')">⬇️ Expense</button>
+    </div>
+    <div class="fg"><label class="fl">Tab</label>
+      <select class="fs" id="rec-tab" onchange="fillRecCatOpts()"></select></div>
+    <div class="fg"><label class="fl">Category</label>
+      <select class="fs" id="rec-cat"></select></div>
+    <div class="fg"><label class="fl">Amount (PKR)</label>
+      <input type="number" class="fi" id="rec-amt" placeholder="0" min="0" step="any"></div>
+    <div class="fg"><label class="fl">Description (optional)</label>
+      <input type="text" class="fi" id="rec-desc" placeholder="e.g. Netflix, Rent…"></div>
+    <div class="fg"><label class="fl">Day of month</label>
+      <input type="number" class="fi" id="rec-day" placeholder="1-31" min="1" max="31"></div>
+    <button class="modal-btn" onclick="saveRecurring()">Save</button>
+  </div>
+</div>
+
 <!-- TAB EDIT MODAL -->
 <div class="overlay" id="tab-modal" style="display:none" onclick="if(event.target===this)closeTabModal()">
   <div class="modal">
@@ -730,11 +779,12 @@ function normalizeTx(t){
 }
 let txs  = JSON.parse(localStorage.getItem('rfq_txs')||'[]').map(t=>normalizeTx({...t,id:String(t.id)}));
 let deletedIds = new Set(JSON.parse(localStorage.getItem('rfq_del')||'[]'));
-let sett = {name:'Rizwan',userCats:{},tabMeta:{},customTabs:[],hiddenTabs:{},...JSON.parse(localStorage.getItem('rfq_set')||'{}')};
+let sett = {name:'Rizwan',userCats:{},tabMeta:{},customTabs:[],hiddenTabs:{},recurring:[],...JSON.parse(localStorage.getItem('rfq_set')||'{}')};
 if(!sett.userCats)   sett.userCats={};
 if(!sett.tabMeta)    sett.tabMeta={};
 if(!sett.customTabs) sett.customTabs=[];
 if(!sett.hiddenTabs) sett.hiddenTabs={};
+if(!sett.recurring)  sett.recurring=[];
 let profilePic=localStorage.getItem('rfq_pic')||'';
 
 // category filter state: { tabId: catName|null }
@@ -907,6 +957,104 @@ function statCard(label,val,cls,ico,sub=''){
 }
 
 // ── HOME (DASHBOARD) ──
+// ── QUICK-ADD CHIPS ──
+function renderQuickChips(){
+  const el=document.getElementById('home-quick'); if(!el) return;
+  const count={};
+  Q.incExp().forEach(t=>{ if(!t.cat||!isLedgerTab(t.tab)) return; const k=t.tab+'|'+t.cat; if(!count[k]) count[k]={n:0,type:t.type}; count[k].n++; });
+  const top=Object.entries(count).sort((a,b)=>b[1].n-a[1].n).slice(0,6);
+  if(!top.length){ el.innerHTML=''; return; }
+  const chips=top.map(([k,v])=>{
+    const [tab,cat]=k.split('|');
+    const def=getAllTabs().find(t=>t.id===tab)||{icon:''};
+    return `<button class="qa-chip" onclick="quickAdd('${tab}','${cat.replace(/'/g,"\\'")}','${v.type}')" title="${def.icon} ${cat}"><span class="qa-ico">${emojiOf(cat,tab)}</span>${cat}</button>`;
+  }).join('');
+  el.innerHTML=`<div class="quick-label">Quick add — tap a category</div><div class="quick-chips">${chips}</div>`;
+}
+function quickAdd(tab,cat,type){
+  openAddModal(tab);
+  setMType(type||'expense');
+  const sel=document.getElementById('m-cat');
+  if(sel){
+    if(cat && ![...sel.options].some(o=>o.value===cat)){ const o=document.createElement('option'); o.value=cat; o.textContent=`${emojiOf(cat,tab)} ${cat}`; sel.appendChild(o); }
+    sel.value=cat||'';
+  }
+  setTimeout(()=>document.getElementById('m-amt').focus(),50);
+}
+
+// ── RECURRING ENTRIES (auto-add on their day each month) ──
+function processRecurring(){
+  const now=new Date(), pfx=curMonthPfx(), day=now.getDate();
+  let added=0;
+  (sett.recurring||[]).forEach(r=>{
+    if(r.lastAdded===pfx) return;                                  // already added this month
+    const targetDay=Math.min(r.day||1, new Date(now.getFullYear(),now.getMonth()+1,0).getDate());
+    if(day<targetDay) return;                                       // not yet due
+    const dateStr=`${pfx}-${String(targetDay).padStart(2,'0')}`;
+    const tx={id:'rec_'+r.id+'_'+pfx,tab:r.tab,type:r.type,amt:r.amt,cat:r.cat||'',desc:r.desc||'(recurring)',date:dateStr,time:'09:00',person:'',returned:false,returnedDate:''};
+    if(txs.some(t=>t.id===tx.id)) { r.lastAdded=pfx; return; }      // guard against duplicates
+    txs.push(tx); if(sbReady) dbWrite(tx);
+    r.lastAdded=pfx; added++;
+  });
+  if(added){ save(); pushConfigNow('settings',sett); toast(`✨ Added ${added} recurring entr${added===1?'y':'ies'}`); }
+}
+function renderRecurringList(){
+  const el=document.getElementById('rec-list'); if(!el) return;
+  const list=sett.recurring||[];
+  if(!list.length){ el.innerHTML=`<div style="color:var(--tx2);font-size:12px;padding:8px 0">None yet — tap ＋ New to add one.</div>`; return; }
+  el.innerHTML=list.map(r=>{
+    const def=getAllTabs().find(t=>t.id===r.tab)||{icon:'📁',name:r.tab};
+    const sign=r.type==='income'?'+':'-';
+    return `<div class="rec-row"><div class="rec-ico">${emojiOf(r.cat,r.tab)}</div><div class="rec-body"><div class="rec-name">${r.desc||r.cat||'—'}</div><div class="rec-meta">${def.icon} ${def.name} · ${r.cat||'—'} · day ${r.day}</div></div><div class="rec-amt" style="color:${r.type==='income'?'var(--inc)':'var(--exp)'}">${sign}${pkr(r.amt)}</div><div class="manage-acts"><button class="mbtn edit" onclick="openRecurring('${r.id}')">✏️</button><button class="mbtn del" onclick="deleteRecurring('${r.id}')">🗑️</button></div></div>`;
+  }).join('');
+}
+let recEditId=null,recType='expense';
+function openRecurring(id){
+  recEditId=id||null;
+  const r=id?(sett.recurring||[]).find(x=>x.id===id):null;
+  document.getElementById('rec-modal-title').textContent=id?'Edit Recurring':'New Recurring';
+  // populate tab options
+  const tabSel=document.getElementById('rec-tab');
+  const ledgerTabs=getAllTabs().filter(t=>isLedgerTab(t.id));
+  tabSel.innerHTML=ledgerTabs.map(t=>`<option value="${t.id}">${t.icon} ${t.name}</option>`).join('');
+  tabSel.value=r?r.tab:(ledgerTabs[0]?ledgerTabs[0].id:'self');
+  setRecType(r?r.type:'expense');
+  fillRecCatOpts();
+  const catSel=document.getElementById('rec-cat');
+  if(r&&r.cat){ if(![...catSel.options].some(o=>o.value===r.cat)){ const o=document.createElement('option'); o.value=r.cat; o.textContent=`${emojiOf(r.cat,r.tab)} ${r.cat}`; catSel.appendChild(o); } catSel.value=r.cat; }
+  document.getElementById('rec-amt').value=r?r.amt:'';
+  document.getElementById('rec-desc').value=r?(r.desc||''):'';
+  document.getElementById('rec-day').value=r?r.day:new Date().getDate();
+  document.getElementById('rec-modal').style.display='flex';
+}
+function closeRecurring(){ document.getElementById('rec-modal').style.display='none'; recEditId=null; }
+function setRecType(t){ recType=t; document.querySelectorAll('#rec-modal .topt').forEach(b=>b.classList.remove('on')); document.getElementById(t==='income'?'rec-ti':'rec-te').classList.add('on'); }
+function fillRecCatOpts(){ const tab=document.getElementById('rec-tab').value; const cats=getCats(tab); document.getElementById('rec-cat').innerHTML='<option value="">Select…</option>'+cats.map(c=>`<option value="${c.n}">${c.e} ${c.n}</option>`).join(''); }
+function saveRecurring(){
+  const tab=document.getElementById('rec-tab').value;
+  const cat=document.getElementById('rec-cat').value;
+  const amt=parseFloat(document.getElementById('rec-amt').value);
+  const desc=document.getElementById('rec-desc').value.trim();
+  const day=parseInt(document.getElementById('rec-day').value,10);
+  if(!amt||amt<=0) return toast('⚠️ Enter an amount');
+  if(!cat) return toast('⚠️ Pick a category');
+  if(!day||day<1||day>31) return toast('⚠️ Day must be 1-31');
+  if(!sett.recurring) sett.recurring=[];
+  if(recEditId){
+    const r=sett.recurring.find(x=>x.id===recEditId);
+    if(r){ Object.assign(r,{tab,type:recType,amt,cat,desc,day}); }
+  } else {
+    sett.recurring.push({id:'r'+Date.now(),tab,type:recType,amt,cat,desc,day,lastAdded:''});
+  }
+  save(); pushConfigNow('settings',sett); closeRecurring(); renderRecurringList();
+  processRecurring(); refresh(); toast('✅ Saved!');
+}
+function deleteRecurring(id){
+  if(!confirm('Delete this recurring entry? Past entries it already created will stay.')) return;
+  sett.recurring=(sett.recurring||[]).filter(r=>r.id!==id);
+  save(); pushConfigNow('settings',sett); renderRecurringList(); toast('🗑️ Removed');
+}
+
 function renderHome(){
   const pfx=curMonthPfx(),today=todayStr();
   const money=Q.incExp();
@@ -918,6 +1066,7 @@ function renderHome(){
     statCard('Expenses · Today',pkr(tExp),'e','🔥','today')+
     statCard('Income · '+monthLbl,pkr(mInc),'i','💰','this month')+
     statCard('Expenses · '+monthLbl,pkr(mExp),'e','💸','this month');
+  renderQuickChips();
   renderDashTabs();
   // past months (everything before the current month) — rendered as history-style rows
   const months=[...new Set(money.map(t=>t.date.slice(0,7)))].filter(m=>m!==pfx).sort((a,b)=>b.localeCompare(a));
@@ -1169,7 +1318,7 @@ function loadSettings(){
   // category dropdown: Self, Business + any custom tab
   const sel=document.getElementById('cat-tab-select');
   if(sel){ const cur=sel.value; const ids=['self','business',...(sett.customTabs||[]).map(t=>t.id)]; sel.innerHTML=ids.map(id=>{ const d=getAllTabs().find(t=>t.id===id)||{id,icon:'',name:id}; return `<option value="${d.id}">${d.icon||''} ${d.name||d.id}</option>`; }).join(''); if(ids.includes(cur)) sel.value=cur; }
-  updateSbUI(sbReady); renderTabsManage(); renderCatManage();
+  updateSbUI(sbReady); renderTabsManage(); renderRecurringList(); renderCatManage();
 }
 // ── TAB MANAGEMENT (add / rename / hide / delete) ──
 let editTabId=null;
@@ -1329,7 +1478,7 @@ function refresh(){
 let sb=null,sbReady=false,sbChannel=null;
 function showBadge(state){ const b=document.getElementById('sync-badge'); if(!b) return; const map={local:{cls:'local',txt:'⚪ Local'},syncing:{cls:'syncing',txt:'🟡 Syncing…'},synced:{cls:'synced',txt:'🟢 Synced'},error:{cls:'error',txt:'🔴 Error'}}; const s=map[state]||map.local; b.className='sync-badge '+s.cls; b.textContent=s.txt; }
 function updateSbUI(c){ const lbl=document.getElementById('sb-conn-label'),dot=document.getElementById('sb-dot'); if(!lbl) return; if(c){ lbl.textContent='🟢 Connected — Real-time sync active'; if(dot) dot.style.background='var(--inc)'; } else { lbl.textContent='Connecting…'; if(dot) dot.style.background='var(--tx3)'; } }
-async function initDB(){ if(typeof supabase==='undefined'){ showBadge('error'); toast('🔴 Supabase library failed to load'); return; } try{ sb=supabase.createClient(SB_URL,SB_KEY); showBadge('syncing'); await dbLoadConfig(); applyPic(); document.getElementById('sb-name-lbl').textContent=sett.name||'Rizwan'; buildNav(); const {data,error}=await sb.from('transactions').select('*'); if(error) throw error; if(data){ txs=data.map(fromRow).filter(t=>!deletedIds.has(t.id)); localStorage.setItem('rfq_txs',JSON.stringify(txs)); } sbReady=true; refresh(); showBadge('synced'); updateSbUI(true); if(sbChannel) sb.removeChannel(sbChannel); sbChannel=sb.channel('rt').on('postgres_changes',{event:'*',schema:'public',table:'transactions'},async()=>{ const {data:d,error:re}=await sb.from('transactions').select('*'); if(re){ console.error('Realtime fetch error:',re); showBadge('error'); return; } if(d){ txs=d.map(fromRow).filter(t=>!deletedIds.has(t.id)); localStorage.setItem('rfq_txs',JSON.stringify(txs)); refresh(); showBadge('synced'); } }).on('postgres_changes',{event:'*',schema:'public',table:'config'},async()=>{ await dbLoadConfig(); applyPic(); document.getElementById('sb-name-lbl').textContent=sett.name||'Rizwan'; buildNav(); refresh(); showBadge('synced'); }).subscribe(s=>{ console.log('Realtime status:',s); if(s==='SUBSCRIBED') showBadge('synced'); if(s==='CHANNEL_ERROR'||s==='TIMED_OUT') showBadge('error'); if(s==='CLOSED') updateSbUI(false); }); }catch(e){ console.error('initDB error:',e); sbReady=false; showBadge('error'); toast('🔴 Supabase: '+(e.message||String(e))); } }
+async function initDB(){ if(typeof supabase==='undefined'){ showBadge('error'); toast('🔴 Supabase library failed to load'); return; } try{ sb=supabase.createClient(SB_URL,SB_KEY); showBadge('syncing'); await dbLoadConfig(); applyPic(); document.getElementById('sb-name-lbl').textContent=sett.name||'Rizwan'; buildNav(); const {data,error}=await sb.from('transactions').select('*'); if(error) throw error; if(data){ txs=data.map(fromRow).filter(t=>!deletedIds.has(t.id)); localStorage.setItem('rfq_txs',JSON.stringify(txs)); } sbReady=true; processRecurring(); refresh(); showBadge('synced'); updateSbUI(true); if(sbChannel) sb.removeChannel(sbChannel); sbChannel=sb.channel('rt').on('postgres_changes',{event:'*',schema:'public',table:'transactions'},async()=>{ const {data:d,error:re}=await sb.from('transactions').select('*'); if(re){ console.error('Realtime fetch error:',re); showBadge('error'); return; } if(d){ txs=d.map(fromRow).filter(t=>!deletedIds.has(t.id)); localStorage.setItem('rfq_txs',JSON.stringify(txs)); refresh(); showBadge('synced'); } }).on('postgres_changes',{event:'*',schema:'public',table:'config'},async()=>{ await dbLoadConfig(); applyPic(); document.getElementById('sb-name-lbl').textContent=sett.name||'Rizwan'; buildNav(); refresh(); showBadge('synced'); }).subscribe(s=>{ console.log('Realtime status:',s); if(s==='SUBSCRIBED') showBadge('synced'); if(s==='CHANNEL_ERROR'||s==='TIMED_OUT') showBadge('error'); if(s==='CLOSED') updateSbUI(false); }); }catch(e){ console.error('initDB error:',e); sbReady=false; showBadge('error'); toast('🔴 Supabase: '+(e.message||String(e))); } }
 function toRow(tx){ const r={...tx,returned_date:tx.returnedDate||''}; delete r.returnedDate; return r; }
 function fromRow(r){ return normalizeTx({...r,id:String(r.id),returnedDate:r.returned_date||''}); }
 async function dbWrite(tx){ if(!sb||!sbReady) return; showBadge('syncing'); try{ const {error}=await sb.from('transactions').upsert(toRow(tx)); if(error) throw error; showBadge('synced'); }catch(e){ console.error(e); showBadge('error'); } }
@@ -1381,6 +1530,7 @@ async function dbLoadConfig(){
       if(!sett.tabMeta) sett.tabMeta={};
       if(!sett.customTabs) sett.customTabs=[];
       if(!sett.hiddenTabs) sett.hiddenTabs={};
+      if(!sett.recurring) sett.recurring=[];
       localStorage.setItem('rfq_set',JSON.stringify(sett));
     }
     if(typeof map.profile_pic==='string'&&map.profile_pic){
@@ -1399,7 +1549,7 @@ async function dbLoadConfig(){
 function init(){
   applyPic(); buildNav();
   document.getElementById('sb-name-lbl').textContent=sett.name||'Rizwan';
-  renderHome(); initDB();
+  processRecurring(); renderHome(); initDB();
   // Show login if APP_PASS (hardcoded) or settings password is set and not yet authed this session
   if((APP_PASS||sett.loginPass)&&!isAuthed){ showLogin(); }
 }
